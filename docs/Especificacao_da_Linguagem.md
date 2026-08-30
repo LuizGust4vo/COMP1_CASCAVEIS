@@ -768,7 +768,7 @@ Exemplo:
 #define PI 3.14
 ```
 
-Caso de teste: [`diretivas_nao_suportadas.c`](../../tests/invalidos/diretivas_nao_suportadas.c)
+Caso de teste: [`diretivas_nao_suportadas.c`](../tests/invalidos/diretivas_nao_suportadas.c)
 
 ---
 
@@ -785,7 +785,7 @@ a & 1;
 a << 2;
 ```
 
-Caso de teste: [`operadores_nao_suportados.c`](../../tests/invalidos/operadores_nao_suportados.c)
+Caso de teste: [`operadores_nao_suportados.c`](../tests/invalidos/operadores_nao_suportados.c)
 
 ---
 
@@ -806,7 +806,7 @@ int 123variavel = 10;
 void 99funcao() {}
 ```
 
-Caso de teste: [`identificador_invalido.c`](../../tests/invalidos/identificador_invalido.c)
+Caso de teste: [`identificador_invalido.c`](../tests/invalidos/identificador_invalido.c)
 
 ---
 
@@ -822,7 +822,7 @@ char c = $;
 float y = ~5.0;
 ```
 
-Caso de teste: [`caracteres_nao_reconhecidos.c`](../../tests/invalidos/caracteres_nao_reconhecidos.c)
+Caso de teste: [`caracteres_nao_reconhecidos.c`](../tests/invalidos/caracteres_nao_reconhecidos.c)
 
 ---
 
@@ -836,7 +836,7 @@ Exemplo:
 "texto sem fechar aspas;
 ```
 
-Caso de teste: [`string_nao_terminada.c`](../../tests/invalidos/string_nao_terminada.c)
+Caso de teste: [`string_nao_terminada.c`](../tests/invalidos/string_nao_terminada.c)
 
 ---
 
