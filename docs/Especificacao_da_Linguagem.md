@@ -128,7 +128,101 @@ Serão suportados:
 
 ## 3. Especificação Léxica e Tokens
 
+Esta seção define os tokens reconhecidos pelo analisador léxico, com base no escopo definido na seção 2. Os nomes de token utilizados aqui correspondem diretamente aos símbolos declarados em [`src/parser.y`](../src/parser.y) e reconhecidos em [`src/lexer.l`](../src/lexer.l).
 
+### 3.1. Palavras reservadas
+
+| Token | Lexema | Descrição |
+|-------|--------|-----------|
+| `INT` | `int` | tipo inteiro |
+| `FLOAT` | `float` | tipo ponto flutuante |
+| `CHAR` | `char` | tipo caractere |
+| `VOID` | `void` | ausência de tipo de retorno |
+| `IF` | `if` | condicional |
+| `ELSE` | `else` | ramo alternativo do condicional |
+| `WHILE` | `while` | laço de repetição com teste no início |
+| `FOR` | `for` | laço de repetição com inicialização/atualização |
+| `RETURN` | `return` | retorno de valor de função |
+
+Palavras reservadas têm prioridade sobre a regra de identificadores: no analisador léxico, as regras das palavras-chave são verificadas antes da regra genérica de identificador, de modo que `int`, por exemplo, nunca é lido como identificador.
+
+### 3.2. Identificadores
+
+| Token | Expressão regular | Exemplo |
+|-------|--------------------|---------|
+| `ID` | `[a-zA-Z_][a-zA-Z0-9_]*` | `total`, `_aux`, `soma2` |
+
+### 3.3. Literais
+
+| Token | Expressão regular | Exemplo |
+|-------|--------------------|---------|
+| `NUM_INT` | `[0-9]+` | `10`, `0`, `42` |
+| `NUM_FLOAT` | `[0-9]+\.[0-9]+` | `3.14`, `0.5` |
+| `CHAR_LIT` | `'([^'\\\n]|\\.)'` | `'x'`, `'\n'` |
+| `STRING_LIT` | delimitado por `"..."`, tratado com estado exclusivo no Flex (`STRING_STATE`) para permitir detectar strings não terminadas | `"Hello World"` |
+
+Strings são tratadas por um estado exclusivo do Flex em vez de uma única expressão regular: ao encontrar `"` o analisador entra no estado `STRING_STATE` e permanece nele até encontrar outra `"` (fecha o token), uma quebra de linha ou o fim do arquivo (reporta erro léxico de "string não terminada" com a linha em que a string foi aberta). Essa abordagem é o que permite validar o caso de teste [`string_nao_terminada.c`](../tests/invalidos/string_nao_terminada.c).
+
+### 3.4. Operadores
+
+| Token | Lexema | Categoria |
+|-------|--------|-----------|
+| `PLUS` | `+` | aritmético |
+| `MINUS` | `-` | aritmético |
+| `TIMES` | `*` | aritmético |
+| `DIVIDE` | `/` | aritmético |
+| `ASSIGN` | `=` | atribuição |
+| `EQ` | `==` | relacional |
+| `NE` | `!=` | relacional |
+| `LT` | `<` | relacional |
+| `GT` | `>` | relacional |
+| `LE` | `<=` | relacional |
+| `GE` | `>=` | relacional |
+| `AND` | `&&` | lógico |
+| `OR` | `\|\|` | lógico |
+| `NOT` | `!` | lógico |
+
+Os operadores de dois caracteres (`==`, `!=`, `<=`, `>=`, `&&`, `\|\|`) são declarados no `.l` antes dos operadores de um caractere para que o Flex sempre prefira o casamento mais longo (ex.: `==` nunca é lido como dois `ASSIGN`).
+
+### 3.5. Delimitadores
+
+| Token | Lexema |
+|-------|--------|
+| `LBRACE` | `{` |
+| `RBRACE` | `}` |
+| `LPAREN` | `(` |
+| `RPAREN` | `)` |
+| `COMMA` | `,` |
+| `SEMI` | `;` |
+
+### 3.6. Comentários e espaços em branco
+
+Comentários e espaços em branco são consumidos pelo analisador léxico e não geram tokens:
+
+- `// ...` até o fim da linha (comentário de linha única);
+- `/* ... */`, tratado com um estado exclusivo do Flex (`COMENTARIO`) que suporta múltiplas linhas e reporta erro léxico caso o comentário não seja fechado antes do fim do arquivo;
+- espaços, tabulações, `\r` e quebras de linha (`[ \t\r\n]+`).
+
+### 3.7. Caracteres não reconhecidos
+
+Qualquer caractere que não corresponda a nenhuma das regras anteriores é tratado por uma regra de captura (`.`) no final do arquivo `.l`, que reporta o caractere e a linha em um erro léxico (`Erro lexico: caractere nao reconhecido ...`) e incrementa um contador global de erros léxicos, sem interromper a leitura do restante do arquivo. Isso cobre o caso de teste [`caracteres_nao_reconhecidos.c`](../tests/invalidos/caracteres_nao_reconhecidos.c).
+
+### 3.8. Verificação de viabilidade no Flex/Bison
+
+Um protótipo funcional foi implementado em [`src/lexer.l`](../src/lexer.l) (Flex) e [`src/parser.y`](../src/parser.y) (Bison), com ponto de entrada em [`src/main.c`](../src/main.c), e integrado ao `Makefile` do projeto (`make build`, `make test-validos`, `make test-invalidos`).
+
+Resultado da verificação:
+
+- **Conflitos de gramática:** `bison -d -v` não reportou nenhum conflito shift/reduce ou reduce/reduce. Em particular, a gramática não sofre da ambiguidade clássica do "dangling else", pois blocos (`bloco`) exigem chaves obrigatórias após `if`/`else`/`while`/`for` — não existe a forma "comando simples sem chaves" que causa esse conflito em outras gramáticas de C.
+- **Build:** o pipeline Flex → Bison → gcc compila sem erros (`make build`); os únicos avisos são sobre funções internas não utilizadas geradas automaticamente pelo Flex (`input`, `yyunput`), que não afetam o funcionamento do analisador.
+- **Caso válido:** o exemplo combinado da seção 5.8 (`fatorial` + `principal`, reaproveitado em [`tests/validos/exemplo_fatorial.c`](../tests/validos/exemplo_fatorial.c)) é aceito pelo analisador (`make test-validos`).
+- **Casos inválidos:** os cinco casos de teste em `tests/invalidos/` (seção 6) são corretamente rejeitados (`make test-invalidos`), com mensagens de erro indicando a linha correta. Testes adicionais colocando as mesmas construções inválidas dentro do corpo de uma função confirmaram que:
+  - caracteres não reconhecidos (`@`) geram erro léxico na linha correta antes do erro sintático subsequente;
+  - operadores não suportados (`+=`) geram erro sintático na linha correta;
+  - strings não terminadas geram erro léxico apontando a linha em que a string foi aberta;
+  - comentários de bloco não terminados geram erro léxico apontando a linha em que o erro foi detectado.
+
+Conclusão: a especificação léxica é viável de ser implementada em Flex/Bison dentro do escopo definido pela equipe, sem necessidade de revisar as decisões de escopo já tomadas.
 
 ---
 
@@ -855,5 +949,6 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.2 | 29/08/2026 | Ana Caroline | - | Desenvolvimento dos exemplos de tradução C → Python |
 | 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
+| 1.5 | 30/08/2026 | Felipe | - | Especificação léxica e tokens; protótipo Flex/Bison e verificação de viabilidade |
 
 ---
