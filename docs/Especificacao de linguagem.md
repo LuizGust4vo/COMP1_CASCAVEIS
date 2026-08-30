@@ -1,0 +1,859 @@
+# Especificação da Linguagem
+
+## 1. Objetivo
+
+Este documento define o subconjunto da linguagem C suportado pelo compilador C para Python desenvolvido pela Equipe 05 - Cascaveis na disciplina de Compiladores 1.
+
+A especificação apresenta as construções da linguagem suportadas, os tokens reconhecidos, as limitações do compilador e exemplos de código C com suas respectivas traduções esperadas para Python.
+
+---
+
+## 2. Escopo da Linguagem
+
+O compilador suportará um subconjunto da linguagem C, focado em lógica imperativa básica, operações matemáticas, controle de fluxo e funções.
+
+---
+
+### 2.1. Tipos de dados
+
+Serão suportados os seguintes tipos primitivos:
+
+- `int`
+- `float`
+- `char`
+- `void`
+
+---
+
+### 2.2. Estruturas de controle
+
+#### Condicionais
+
+- `if`
+- `else`
+
+#### Estruturas de repetição
+
+- `while`
+- `for`
+
+---
+
+### 2.3. Funções
+
+O compilador deverá suportar:
+
+- Declaração e definição de funções;
+- Chamada de funções;
+- Retorno de valores utilizando `return`.
+
+---
+
+### 2.4. Operadores
+
+#### Aritméticos
+
+- `+` — soma
+- `-` — subtração
+- `*` — multiplicação
+- `/` — divisão
+
+#### Atribuição
+
+- `=` — atribuição simples
+
+#### Relacionais
+
+- `==` — igualdade
+- `!=` — diferença
+- `<` — menor
+- `>` — maior
+- `<=` — menor ou igual
+- `>=` — maior ou igual
+
+#### Lógicos
+
+- `&&` — E lógico
+- `||` — OU lógico
+- `!` — NÃO lógico
+
+---
+
+### 2.5. Literais
+
+Serão reconhecidos:
+
+- números inteiros em base decimal;
+- números de ponto flutuante;
+- caracteres literais;
+- strings literais.
+
+Exemplos:
+
+```c
+10
+3.14
+'x'
+"Hello World"
+```
+
+---
+
+### 2.6. Identificadores
+
+Nomes de variáveis e funções devem seguir o padrão:
+
+```text
+[a-zA-Z_][a-zA-Z0-9_]*
+```
+---
+
+### 2.7. Delimitadores de bloco e expressão
+
+- `{ }` — chaves, delimitam blocos de código
+- `( )` — parênteses, delimitam expressões, condições, parâmetros e chamadas de funções
+- `,` — vírgula, separa parâmetros e argumentos
+- `;` — ponto e vírgula, encerra instruções
+
+---
+
+### 2.8. Comentários
+
+Serão suportados:
+
+- `// comentário` — comentário de linha única
+- `/* ... */` — comentário em bloco 
+
+---
+
+## 3. Especificação Léxica e Tokens
+
+
+
+---
+
+## 4. Regras Sintáticas
+
+Esta seção define como os elementos léxicos podem ser combinados para formar construções válidas da linguagem. As regras apresentadas utilizam uma notação simplificada de gramática e servirão como referência para a implementação do analisador sintático no Bison.
+
+---
+
+### 4.1. Estrutura do programa
+
+Um programa é formado por uma ou mais funções.
+
+```text
+programa ::= funcao
+           | programa funcao
+```
+
+Uma função possui tipo de retorno, identificador e parâmetros opcionais, podendo ser declarada ou definida.
+
+```text
+tipo ::= "int"
+       | "float"
+       | "char"
+
+tipo_retorno ::= tipo
+               | "void"
+
+declaracao_funcao ::= tipo_retorno identificador "(" parametros_opcionais ")" ";"
+
+definicao_funcao ::= tipo_retorno identificador "(" parametros_opcionais ")" bloco
+
+funcao ::= declaracao_funcao
+         | definicao_funcao
+```
+
+---
+
+### 4.2. Blocos e comandos
+
+Blocos são delimitados por chaves e podem conter zero ou mais comandos.
+
+```text
+bloco ::= "{" comandos "}"
+
+comandos ::= vazio
+           | comandos comando
+```
+
+Os comandos reconhecidos pela gramática são:
+
+```text
+comando ::= declaracao
+          | atribuicao
+          | chamada_funcao ";"
+          | condicional
+          | repeticao
+          | retorno
+```
+
+---
+
+### 4.3. Declarações e atribuições
+
+Declarações poderão ocorrer com ou sem inicialização.
+
+```text
+declaracao ::= tipo identificador ";"
+             | tipo identificador "=" expressao ";"
+```
+
+Atribuições modificam o valor associado a um identificador.
+
+```text
+atribuicao ::= identificador "=" expressao ";"
+```
+
+---
+
+### 4.4. Estruturas de controle
+
+As estruturas condicionais seguem as formas:
+
+```text
+condicional ::= "if" "(" expressao ")" bloco
+              | "if" "(" expressao ")" bloco "else" bloco
+```
+
+As estruturas de repetição seguem as formas:
+
+```text
+repeticao ::= "while" "(" expressao ")" bloco
+            | "for" "(" inicializacao_for ";" expressao ";" atualizacao_for ")" bloco
+
+inicializacao_for ::= tipo identificador "=" expressao
+                    | identificador "=" expressao
+
+atualizacao_for ::= identificador "=" expressao
+```
+
+---
+
+### 4.5. Expressões
+
+Expressões podem ser formadas por literais, identificadores, chamadas de função, expressões entre parênteses e operações entre expressões.
+
+```text
+expressao ::= literal
+            | identificador
+            | chamada_funcao
+            | "(" expressao ")"
+            | "-" expressao
+            | "!" expressao
+            | expressao operador_binario expressao
+```
+
+A precedência dos operadores deverá ser considerada pelo analisador sintático para evitar interpretações ambíguas. Da maior para a menor precedência:
+
+```text
+! - (unário)
+* /
++ -
+< <= > >=
+== !=
+&&
+||
+```
+
+Parênteses podem ser utilizados para alterar explicitamente a ordem de avaliação.
+
+---
+
+### 4.6. Parâmetros e argumentos
+
+Os parâmetros de uma função são opcionais e separados por vírgulas.
+
+```text
+parametros_opcionais ::= vazio
+                       | parametros
+
+parametros ::= parametro
+             | parametros "," parametro
+
+parametro ::= tipo identificador
+```
+
+De forma semelhante, chamadas de função podem possuir zero ou mais argumentos.
+
+```text
+chamada_funcao ::= identificador "(" argumentos_opcionais ")"
+
+argumentos_opcionais ::= vazio
+                       | argumentos
+
+argumentos ::= expressao
+             | argumentos "," expressao
+```
+
+---
+
+### 4.7. Retorno de funções
+
+O comando de retorno é representado por:
+
+```text
+retorno ::= "return" expressao ";"
+```
+
+Funções que não retornam valor não exigem a presença desse comando.
+
+---
+
+### 4.8. Relação com o analisador sintático
+
+O Flex será responsável por transformar o código-fonte em uma sequência de tokens. O Bison utilizará essa sequência para verificar se as construções obedecem às regras sintáticas definidas nesta seção.
+
+As regras aqui apresentadas são uma especificação da sintaxe aceita pelo compilador e poderão ser refinadas durante a implementação da gramática em `parser.y`.
+
+---
+
+## 5. Exemplos de Tradução C → Python
+
+Esta parte cobre exemplos mínimos e combinados para cada construção definida no escopo da linguagem fonte. Cada exemplo traz: código C, tradução Python esperada, e observações sobre decisões de tradução.
+
+---
+
+### 5.1. Tipos de Dados Primitivos
+
+#### 5.1.1. Declaração e inicialização
+
+**C**
+```c
+int a = 10;
+float b = 3.14;
+char c = 'x';
+```
+
+**Python**
+```python
+a = 10
+b = 3.14
+c = 'x'
+```
+
+**Observações:** Python não tem declaração de tipo. A informação de tipo do C pode ser descartada na tradução ou preservada como type hint (`a: int = 10`), dependendo da decisão do grupo sobre geração de código. Aqui assumimos descarte simples.
+
+#### 5.1.2. `void` em funções
+
+**C**
+```c
+void imprime_nada() {
+    int x = 5;
+}
+```
+
+**Python**
+```python
+def imprime_nada():
+    x = 5
+```
+
+**Observações:** `void` não tem equivalente direto, a ausência de `return` em Python já implica retorno `None`, então o tipo simplesmente é omitido na assinatura.
+
+---
+
+### 5.2. Estruturas Condicionais (`if`, `else`)
+
+**C**
+```c
+int classifica(int n) {
+    if (n > 0) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+```
+
+**Python**
+```python
+def classifica(n):
+    if n > 0:
+        return 1
+    else:
+        return -1
+```
+
+**Observações:** Tradução direta. `{}` viram indentação + `:`. Parênteses na condição são opcionais em Python, mas podem ser mantidos sem prejuízo (`if (n > 0):` também é válido).
+
+#### 5.2.1. `if` sem `else`
+
+**C**
+```c
+int checa(int x) {
+    if (x == 0) {
+        return 100;
+    }
+    return 0;
+}
+```
+
+**Python**
+```python
+def checa(x):
+    if x == 0:
+        return 100
+    return 0
+```
+
+---
+
+### 5.3. Laços de Repetição
+
+#### 5.3.1. `while`
+
+**C**
+```c
+int soma_ate(int n) {
+    int total = 0;
+    int i = 1;
+    while (i <= n) {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+```
+
+**Python**
+```python
+def soma_ate(n):
+    total = 0
+    i = 1
+    while i <= n:
+        total = total + i
+        i = i + 1
+    return total
+```
+
+**Observações:** Mapeamento 1:1. Nenhuma armadilha aqui, já que o escopo não inclui `++`/`--` nem operadores compostos (`+=`), então tudo fica explícito com `=`.
+
+#### 5.3.2. `for` — regra geral de tradução: sempre vira `while`
+
+
+**C**
+```c
+int soma_array_simulada(int n) {
+    int total = 0;
+    for (int i = 0; i < n; i = i + 1) {
+        total = total + i;
+    }
+    return total;
+}
+```
+
+**Python**
+```python
+def soma_array_simulada(n):
+    total = 0
+    i = 0
+    while i < n:
+        total = total + i
+        i = i + 1
+    return total
+```
+
+#### 5.3.3. `for` — caso com passo diferente de 1
+
+**C**
+```c
+int conta_regressiva(int n) {
+    int passos = 0;
+    for (int i = n; i > 0; i = i - 2) {
+        passos = passos + 1;
+    }
+    return passos;
+}
+```
+
+**Python**
+```python
+def conta_regressiva(n):
+    passos = 0
+    i = n
+    while i > 0:
+        passos = passos + 1
+        i = i - 2
+    return passos
+```
+
+**Observações:** Como a regra é sempre `for → while`, esse caso é tratado exatamente igual ao anterior — não exige nenhum reconhecimento especial de padrão. Essa é a vantagem da regra escolhida: um único algoritmo de tradução cobre qualquer `for`, incluindo passos negativos, condições compostas, ou `step` que não seja uma constante simples.
+
+---
+
+### 5.4. Funções
+
+#### 5.4.1. Declaração, parâmetros e `return`
+
+**C**
+```c
+int soma(int a, int b) {
+    return a + b;
+}
+```
+
+**Python**
+```python
+def soma(a, b):
+    return a + b
+```
+
+#### 5.4.2. Chamada de função
+
+**C**
+```c
+int quadrado(int x) {
+    return x * x;
+}
+
+int principal() {
+    int r = quadrado(5);
+    return r;
+}
+```
+
+**Python**
+```python
+def quadrado(x):
+    return x * x
+
+def principal():
+    r = quadrado(5)
+    return r
+```
+
+#### 5.4.3. Função `void` sem `return`
+
+**C**
+```c
+void nao_faz_nada() {
+    int x = 1;
+    int y = 2;
+}
+```
+
+**Python**
+```python
+def nao_faz_nada():
+    x = 1
+    y = 2
+```
+
+---
+
+### 5.5. Operadores
+
+#### 5.5.1. Aritméticos
+
+**C**
+```c
+int calcula(int a, int b) {
+    int soma = a + b;
+    int sub = a - b;
+    int mul = a * b;
+    int div = a / b;
+    return div;
+}
+```
+
+**Python**
+```python
+def calcula(a, b):
+    soma = a + b
+    sub = a - b
+    mul = a * b
+    div = a / b
+    return div
+```
+
+**Observações — ponto de atenção crítico:** em C, `int / int` faz divisão inteira (trunca). Em Python, `/` **sempre** retorna `float`. Se `a` e `b` forem `int` no C original, a tradução correta para preservar o comportamento é usar `//` (divisão inteira) em Python:
+
+```python
+div = a // b
+```
+
+O grupo precisa decidir: o compilador vai analisar os tipos das variáveis (via tabela de símbolos) para escolher entre `/` e `//`? Essa é provavelmente a decisão de tradução mais importante do escopo definido, porque afeta a corretude de qualquer programa que divida inteiros.
+
+#### 5.5.2. Atribuição
+
+**C**
+```c
+int x = 5;
+x = 10;
+```
+
+**Python**
+```python
+x = 5
+x = 10
+```
+
+#### 5.5.3. Relacionais
+
+**C**
+```c
+int compara(int a, int b) {
+    if (a == b) { return 0; }
+    if (a != b) { return 1; }
+    if (a < b) { return 2; }
+    if (a > b) { return 3; }
+    if (a <= b) { return 4; }
+    if (a >= b) { return 5; }
+    return -1;
+}
+```
+
+**Python**
+```python
+def compara(a, b):
+    if a == b:
+        return 0
+    if a != b:
+        return 1
+    if a < b:
+        return 2
+    if a > b:
+        return 3
+    if a <= b:
+        return 4
+    if a >= b:
+        return 5
+    return -1
+```
+
+**Observações:** Todos os operadores relacionais de C têm símbolo idêntico em Python — tradução puramente sintática, sem mudança semântica.
+
+#### 5.5.4. Lógicos
+
+**C**
+```c
+int logica(int a, int b) {
+    if (a > 0 && b > 0) {
+        return 1;
+    }
+    if (a > 0 || b > 0) {
+        return 2;
+    }
+    if (!(a > 0)) {
+        return 3;
+    }
+    return 0;
+}
+```
+
+**Python**
+```python
+def logica(a, b):
+    if a > 0 and b > 0:
+        return 1
+    if a > 0 or b > 0:
+        return 2
+    if not (a > 0):
+        return 3
+    return 0
+```
+
+**Observações:** `&&` → `and`, `||` → `or`, `!` → `not`. Semântica idêntica para os tipos do escopo (sem ponteiros, sem structs), incluindo curto-circuito (short-circuit evaluation), que se comporta igual nas duas linguagens.
+
+---
+
+### 5.6. Literais
+
+**C**
+```c
+int i = 42;
+float f = 3.14;
+char* s = "texto";
+```
+
+**Python**
+```python
+i = 42
+f = 3.14
+s = "texto"
+```
+
+**Observações:** Strings literais em C são tecnicamente `char*` (arrays terminados em `\0`); em Python são o tipo nativo `str`. Como o escopo não inclui manipulação de ponteiros nem operações sobre arrays de char, a tradução direta funciona bem, mas vale registrar que semanticamente são representações bem diferentes por baixo dos panos.
+
+---
+
+### 5.7. Comentários
+
+**C**
+```c
+// comentário de linha
+int x = 1; // comentário no fim da linha
+
+/* comentário
+   em bloco */
+int y = 2;
+```
+
+**Python**
+```python
+# comentário de linha
+x = 1  # comentário no fim da linha
+
+# comentário
+# em bloco
+y = 2
+```
+
+**Observações:** Python não tem comentário de bloco nativo equivalente a `/* */` (o mais próximo, strings de documentação com `"""`, tem semântica diferente — é uma string literal, não um comentário puro). A tradução mais segura é converter comentários de bloco em múltiplas linhas de `#`.
+
+---
+
+### 5.8. Exemplo Combinado (teste de integração)
+
+**C**
+```c
+int fatorial(int n) {
+    int resultado = 1;
+    int i = 1;
+    while (i <= n) {
+        resultado = resultado * i;
+        i = i + 1;
+    }
+    return resultado;
+}
+
+int principal() {
+    int x = 5;
+    if (x > 0 && x < 10) {
+        return fatorial(x);
+    } else {
+        return -1;
+    }
+}
+```
+
+**Python**
+```python
+def fatorial(n):
+    resultado = 1
+    i = 1
+    while i <= n:
+        resultado = resultado * i
+        i = i + 1
+    return resultado
+
+def principal():
+    x = 5
+    if x > 0 and x < 10:
+        return fatorial(x)
+    else:
+        return -1
+```
+
+---
+
+## 6. Construções Não Suportadas
+
+O compilador implementará apenas o subconjunto da linguagem C definido nesta especificação. Construções fora desse escopo e entradas que violem as regras léxicas estabelecidas deverão ser identificadas como não suportadas ou inválidas.
+
+Para validar essas limitações, foram definidos casos de teste em [`tests/invalidos/`](../../tests/invalidos/).
+
+---
+
+### 6.1. Diretivas do pré-processador
+
+Diretivas do pré-processador C, como `#include` e `#define`, não fazem parte do escopo do compilador.
+
+Exemplo:
+
+```c
+#include <stdio.h>
+#define PI 3.14
+```
+
+Caso de teste: [`diretivas_nao_suportadas.c`](../../tests/invalidos/diretivas_nao_suportadas.c)
+
+---
+
+### 6.2. Operadores não suportados
+
+Apenas os operadores definidos no escopo da linguagem serão reconhecidos. Operadores de atribuição composta, incremento e decremento, operadores bit a bit e operadores de deslocamento não serão suportados nesta versão.
+
+Exemplos:
+
+```c
+a += 2;
+a++;
+a & 1;
+a << 2;
+```
+
+Caso de teste: [`operadores_nao_suportados.c`](../../tests/invalidos/operadores_nao_suportados.c)
+
+---
+
+### 6.3. Identificadores inválidos
+
+Identificadores devem seguir a expressão regular:
+
+```text
+[a-zA-Z_][a-zA-Z0-9_]*
+```
+
+Portanto, identificadores iniciados por números serão considerados inválidos.
+
+Exemplos:
+
+```c
+int 123variavel = 10;
+void 99funcao() {}
+```
+
+Caso de teste: [`identificador_invalido.c`](../../tests/invalidos/identificador_invalido.c)
+
+---
+
+### 6.4. Caracteres não reconhecidos
+
+Caracteres que não façam parte dos tokens definidos pela linguagem deverão ser reportados como inválidos pelo analisador léxico.
+
+Exemplos:
+
+```c
+int x = @;
+char c = $;
+float y = ~5.0;
+```
+
+Caso de teste: [`caracteres_nao_reconhecidos.c`](../../tests/invalidos/caracteres_nao_reconhecidos.c)
+
+---
+
+### 6.5. Strings não terminadas
+
+Strings devem possuir aspas de abertura e fechamento. Uma cadeia iniciada com `"` e não terminada corretamente será considerada uma entrada inválida.
+
+Exemplo:
+
+```c
+"texto sem fechar aspas;
+```
+
+Caso de teste: [`string_nao_terminada.c`](../../tests/invalidos/string_nao_terminada.c)
+
+---
+
+### 6.6. Comportamento esperado
+
+Os arquivos presentes em `tests/invalidos/` representam entradas que não devem ser aceitas normalmente pelo compilador. Durante as etapas de análise léxica e sintática, espera-se que esses casos resultem na identificação e no relato adequado do erro, em vez de serem processados como programas válidos.
+
+---
+
+## 7. Histórico de Versões
+
+| Versão | Data | Autor(es) | Revisor(es) | Descrição |
+|--------|------|-----------|-------------|-----------|
+| 1.0 | 23/08/2026 | Gabriel Goldenberg | - | Criação do documento |
+| 1.1 | 28/08/2026 | Pedro Araujo | Luiz Almeida | Adicionou escopo da linguagem |
+| 1.2 | 29/08/2026 | Ana Caroline | - | Desenvolvimento dos exemplos de tradução C → Python |
+| 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
+| 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
+
+---
