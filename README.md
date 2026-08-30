@@ -36,7 +36,7 @@
         <td align="center">
             <a href="https://github.com/PedroAraujo004">
                 <img style="border-radius: 50%;" src="https://github.com/PedroAraujo004.png" width="150px;"/>
-                <h5 class="text-center">Paulo Henrique</h5>
+                <h5 class="text-center">Pedro Araujo</h5>
             </a>
         </td>
 </table>
