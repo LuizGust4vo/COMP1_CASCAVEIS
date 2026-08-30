@@ -753,7 +753,7 @@ def principal():
 
 O compilador implementará apenas o subconjunto da linguagem C definido nesta especificação. Construções fora desse escopo e entradas que violem as regras léxicas estabelecidas deverão ser identificadas como não suportadas ou inválidas.
 
-Para validar essas limitações, foram definidos casos de teste em [`tests/invalidos/`](../../tests/invalidos/).
+Para validar essas limitações, foram definidos casos de teste em [`tests/invalidos/`](../tests/invalidos/).
 
 ---
 
