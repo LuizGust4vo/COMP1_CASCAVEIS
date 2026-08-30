@@ -130,6 +130,8 @@ Serão suportados:
 
 Esta seção define os tokens reconhecidos pelo analisador léxico, com base no escopo definido na seção 2. Os nomes de token utilizados aqui correspondem diretamente aos símbolos declarados em [`src/parser.y`](../src/parser.y) e reconhecidos em [`src/lexer.l`](../src/lexer.l).
 
+---
+
 ### 3.1. Palavras reservadas
 
 | Token | Lexema | Descrição |
@@ -146,11 +148,15 @@ Esta seção define os tokens reconhecidos pelo analisador léxico, com base no 
 
 Palavras reservadas têm prioridade sobre a regra de identificadores: no analisador léxico, as regras das palavras-chave são verificadas antes da regra genérica de identificador, de modo que `int`, por exemplo, nunca é lido como identificador.
 
+---
+
 ### 3.2. Identificadores
 
 | Token | Expressão regular | Exemplo |
 |-------|--------------------|---------|
 | `ID` | `[a-zA-Z_][a-zA-Z0-9_]*` | `total`, `_aux`, `soma2` |
+
+---
 
 ### 3.3. Literais
 
@@ -162,6 +168,8 @@ Palavras reservadas têm prioridade sobre a regra de identificadores: no analisa
 | `STRING_LIT` | delimitado por `"..."`, tratado com estado exclusivo no Flex (`STRING_STATE`) para permitir detectar strings não terminadas | `"Hello World"` |
 
 Strings são tratadas por um estado exclusivo do Flex em vez de uma única expressão regular: ao encontrar `"` o analisador entra no estado `STRING_STATE` e permanece nele até encontrar outra `"` (fecha o token), uma quebra de linha ou o fim do arquivo (reporta erro léxico de "string não terminada" com a linha em que a string foi aberta). Essa abordagem é o que permite validar o caso de teste [`string_nao_terminada.c`](../tests/invalidos/string_nao_terminada.c).
+
+---
 
 ### 3.4. Operadores
 
@@ -184,6 +192,8 @@ Strings são tratadas por um estado exclusivo do Flex em vez de uma única expre
 
 Os operadores de dois caracteres (`==`, `!=`, `<=`, `>=`, `&&`, `\|\|`) são declarados no `.l` antes dos operadores de um caractere para que o Flex sempre prefira o casamento mais longo (ex.: `==` nunca é lido como dois `ASSIGN`).
 
+---
+
 ### 3.5. Delimitadores
 
 | Token | Lexema |
@@ -195,6 +205,8 @@ Os operadores de dois caracteres (`==`, `!=`, `<=`, `>=`, `&&`, `\|\|`) são dec
 | `COMMA` | `,` |
 | `SEMI` | `;` |
 
+---
+
 ### 3.6. Comentários e espaços em branco
 
 Comentários e espaços em branco são consumidos pelo analisador léxico e não geram tokens:
@@ -203,9 +215,13 @@ Comentários e espaços em branco são consumidos pelo analisador léxico e não
 - `/* ... */`, tratado com um estado exclusivo do Flex (`COMENTARIO`) que suporta múltiplas linhas e reporta erro léxico caso o comentário não seja fechado antes do fim do arquivo;
 - espaços, tabulações, `\r` e quebras de linha (`[ \t\r\n]+`).
 
+---
+
 ### 3.7. Caracteres não reconhecidos
 
 Qualquer caractere que não corresponda a nenhuma das regras anteriores é tratado por uma regra de captura (`.`) no final do arquivo `.l`, que reporta o caractere e a linha em um erro léxico (`Erro lexico: caractere nao reconhecido ...`) e incrementa um contador global de erros léxicos, sem interromper a leitura do restante do arquivo. Isso cobre o caso de teste [`caracteres_nao_reconhecidos.c`](../tests/invalidos/caracteres_nao_reconhecidos.c).
+
+---
 
 ### 3.8. Verificação de viabilidade no Flex/Bison
 
@@ -949,6 +965,6 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.2 | 29/08/2026 | Ana Caroline | - | Desenvolvimento dos exemplos de tradução C → Python |
 | 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
-| 1.5 | 30/08/2026 | Felipe | - | Especificação léxica e tokens; protótipo Flex/Bison e verificação de viabilidade |
+| 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
 
 ---
