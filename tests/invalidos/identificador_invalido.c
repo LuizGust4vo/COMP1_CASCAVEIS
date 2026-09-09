@@ -1,2 +1,4 @@
-int 123variavel = 10;
-void 99funcao() {}
+int main() {
+    int 123variavel = 10;
+    return 0;
+}

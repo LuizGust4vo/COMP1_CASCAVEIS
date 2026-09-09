@@ -18,6 +18,7 @@ static int inicio_string_linha = 0;
 
 DIGITO      [0-9]
 LETRA       [a-zA-Z_]
+IDENT_INVALIDO  {DIGITO}+{LETRA}({LETRA}|{DIGITO})*
 
 %%
 
@@ -68,6 +69,12 @@ LETRA       [a-zA-Z_]
 "<"                      { return LT; }
 ">"                      { return GT; }
 "+"                      { return PLUS; }
+"--" {
+    fprintf(stderr,
+            "Erro lexico: operador nao suportado '%s' na linha %d\n",
+            yytext, yylineno);
+    erros_lexicos++;
+}
 "-"                      { return MINUS; }
 "*"                      { return TIMES; }
 "/"                      { return DIVIDE; }
@@ -80,6 +87,13 @@ LETRA       [a-zA-Z_]
 ","                      { return COMMA; }
 ";"                      { return SEMI; }
 
+{IDENT_INVALIDO} {
+    fprintf(stderr,
+            "Erro lexico: identificador invalido '%s' na linha %d\n",
+            yytext, yylineno);
+    erros_lexicos++;
+}
+
 {DIGITO}+"."{DIGITO}+    { return NUM_FLOAT; }
 {DIGITO}+                { return NUM_INT; }
 '([^'\\\n]|\\.)'         { return CHAR_LIT; }
@@ -88,9 +102,11 @@ LETRA       [a-zA-Z_]
 
 [ \t\r\n]+               { /* espacos em branco: ignora */ }
 
-.                        {
-                            fprintf(stderr, "Erro lexico: caractere nao reconhecido '%s' na linha %d\n", yytext, yylineno);
-                            erros_lexicos++;
-                         }
+. {
+    fprintf(stderr,
+            "Erro lexico: caractere nao reconhecido '%s' na linha %d\n",
+            yytext, yylineno);
+    erros_lexicos++;
+}
 
 %%
