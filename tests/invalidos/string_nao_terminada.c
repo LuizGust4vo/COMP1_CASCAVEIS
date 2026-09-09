@@ -1,1 +1,3 @@
-char* str = "texto sem fechar aspas;
+int main() {
+    return "texto sem fechar aspas;
+}
