@@ -12,6 +12,8 @@ void yyerror(const char *s);
 %}
 
 %define parse.error verbose
+/* Falha na geracao se surgirem conflitos nao resolvidos na gramatica. */
+%expect 0
 
 %token INT FLOAT CHAR VOID
 %token IF ELSE WHILE FOR RETURN

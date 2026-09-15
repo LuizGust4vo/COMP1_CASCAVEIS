@@ -5,8 +5,8 @@
  */
 
 #include <stdio.h>
+#include "parser.tab.h"
 
-extern int yyparse(void);
 extern FILE *yyin;
 extern int erros_lexicos;
 
@@ -20,6 +20,10 @@ int main(int argc, char **argv) {
     }
 
     int erro_sintatico = yyparse();
+
+    if (argc > 1) {
+        fclose(yyin);
+    }
 
     if (erro_sintatico == 0 && erros_lexicos == 0) {
         printf("Analise concluida: programa aceito.\n");
