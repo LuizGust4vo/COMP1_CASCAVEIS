@@ -993,14 +993,15 @@ Qualquer expressão aritmética, relacional ou lógica que utilize `void` ou `ST
 | Condição de `if`, `while`, `for` | `STRING_LIT` ou `void` | **Rejeitado (Erro Semântico)** | Condição exige expressão numérica |
 
 #### 7.3. Regras de Uso de Strings (`STRING_LIT`)
-
-Como a linguagem não possui ponteiros (`char*`) nem vetores (`char[]`), literais de string (`"..."`) possuem uso restrito:
-- **Uso permitido:** Exclusivamente como argumento passado diretamente em chamadas de função (ex.: `processar("Hello World");`).
+Como a linguagem não possui ponteiros (`char*`), vetores (`char[]`) nem um tipo de dado `string` formal para declaração de variáveis ou parâmetros, literais de string (`"..."`) possuem uso estritamente isolado:
+- **Uso permitido:** Uma chamada de função pode receber um literal `STRING_LIT` diretamente como argumento (por exemplo, em funções nativas de saída como `printf`), **mesmo que a linguagem não possua um tipo string formal para declaração de parâmetros**. Esta permissão é uma exceção exclusiva para argumentos literais diretos.
 - **Usos proibidos (geram Erro Semântico):**
-  - Inicializar ou atribuir `STRING_LIT` a variáveis (`int`, `float`, `char`);
-  - Utilizar `STRING_LIT` em operações aritméticas (`+`, `-`, `*`, `/`), relacionais ou lógicas;
-  - Utilizar `STRING_LIT` como expressão de condição em `if`, `while` ou `for`;
-  - Retornar `STRING_LIT` em um comando `return`.
+  - Inicializar, declarar parâmetros ou atribuir `STRING_LIT` a variáveis (`int`, `float`, `char`);
+  - Utilizar `STRING_LIT` em operações aritméticas (`+`, `-`, `*`, `/`), relacionais ou lógicas;
+  - Utilizar `STRING_LIT` como expressão de condição em `if`, `while` ou `for`;
+  - Retornar `STRING_LIT` em um comando `return`.
+
+*(Nota: Nos exemplos, printf representa uma função nativa do compilador, definida para aceitar um literal STRING_LIT diretamente como argumento. Funções personalizadas só poderão receber strings se essa regra for explicitamente definida para elas; a declaração comum de parâmetros continua limitada aos tipos previstos na gramática.)*
 
 #### 7.4. Exemplos de Código (Tipos e Strings)
 
@@ -1012,7 +1013,7 @@ int calcular(int base) {
     float total = a + taxa;  // Aceito: int + float resulta em float
 
     if (a > 0 && total >= 10.0) {
-        processar("Calculo concluido"); // Aceito: string literal como argumento de funcao
+        printf("Calculo concluido"); // Aceito: string literal como argumento de funcao
         return a / 2;                   // Aceito: int / int resulta em int
     }
     return base;
