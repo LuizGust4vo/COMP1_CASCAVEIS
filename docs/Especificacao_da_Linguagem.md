@@ -684,7 +684,7 @@ def calcula(a, b):
 div = a // b
 ```
 
-O grupo precisa decidir: o compilador vai analisar os tipos das variáveis (via tabela de símbolos) para escolher entre `/` e `//`? Essa é provavelmente a decisão de tradução mais importante do escopo definido, porque afeta a corretude de qualquer programa que divida inteiros.
+Decisão definida na Sprint 3: o analisador semântico verificará os tipos dos operandos para definir o tipo resultante da operação. Quando ambos os operandos de `/` forem inteiros (`int` ou `char`), o resultado será do tipo `int` (divisão inteira, traduzida para `//` em Python); quando pelo menos um dos operandos for `float`, o outro será promovido e o resultado será `float` (divisão real, traduzida para `/` em Python).
 
 #### 5.5.2. Atribuição
 
@@ -773,20 +773,26 @@ def logica(a, b):
 
 **C**
 ```c
-int i = 42;
-float f = 3.14;
-char* s = "texto";
+int exemplo_literais() {
+    int i = 42;
+    float f = 3.14;
+    char c = 'x';
+    processar("texto");
+    return i;
+}
 ```
 
 **Python**
 ```python
-i = 42
-f = 3.14
-s = "texto"
+def exemplo_literais():
+    i = 42
+    f = 3.14
+    c = 'x'
+    processar("texto")
+    return i
 ```
 
-**Observações:** Strings literais em C são tecnicamente `char*` (arrays terminados em `\0`); em Python são o tipo nativo `str`. Como o escopo não inclui manipulação de ponteiros nem operações sobre arrays de char, a tradução direta funciona bem, mas vale registrar que semanticamente são representações bem diferentes por baixo dos panos.
-
+**Observações:** Como o escopo da linguagem não inclui ponteiros (`char*`) nem arrays (`char[]`), não existe declaração de variáveis para armazenar strings. Literais de caractere (`'x'`) são atribuídos a variáveis `char`, enquanto strings literais (`"texto"`) são permitidas apenas como argumentos diretos em chamadas de função.
 ---
 
 ### 5.7. Comentários
@@ -956,7 +962,80 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 
 ---
 
-## 7. Histórico de Versões
+## 7. Regras Semânticas
+
+### Combinações de Tipos e Uso de Strings
+
+#### 7.1. Combinações de Tipos em Expressões
+
+| Categoria | Operadores | Tipos dos Operandos Aceitos | Tipo Resultante | Regra Semântica |
+|-----------|------------|-----------------------------|-----------------|-----------------|
+| Aritméticos | `+`, `-`, `*`, `/` | `int` e `int` | `int` | Operação inteira (em `/`, traduz para `//` em Python) |
+| Aritméticos | `+`, `-`, `*`, `/` | `float` e `float` | `float` | Operação em ponto flutuante (em `/`, traduz para `/` em Python) |
+| Aritméticos | `+`, `-`, `*`, `/` | `int` e `float` (qualquer ordem) | `float` | Promoção implícita do operando `int` para `float` |
+| Aritméticos | `+`, `-`, `*`, `/` | `char` com `char` ou `char` com `int` | `int` | `char` é promovido para `int` (valor ASCII) |
+| Unário aritmético | `-` | `int`, `float`, `char` | Mesmo tipo (`char` promove para `int`) | Inversão de sinal numérica |
+| Relacionais | `==`, `!=`, `<`, `>`, `<=`, `>=` | `int`, `float`, `char` entre si | `int` | Produz `1` (verdadeiro) ou `0` (falso) |
+| Lógicos | `&&`, `\|\|`, `!` | `int`, `float`, `char` | `int` | Considera `0` falso e qualquer valor diferente de `0` verdadeiro |
+
+Qualquer expressão aritmética, relacional ou lógica que utilize `void` ou `STRING_LIT` como operando é inválida e deve ser reportada como **erro semântico de incompatibilidade de tipos**.
+
+#### 7.2. Compatibilidade em Declarações com Inicialização, Atribuições (`=`) e Retorno (`return`)
+
+| Tipo Esperado (Variável ou Retorno da Função) | Tipo da Expressão Fornecida | Resultado | Justificativa |
+|-----------------------------------------------|-----------------------------|-----------|---------------|
+| `int` | `int` ou `char` | Aceito | Compatibilidade inteira direta |
+| `float` | `float` ou `int` | Aceito | Coerção implícita segura (`int` promovido para `float` sem perda de precisão) |
+| `char` | `char` | Aceito | Mesmo tipo primitivo |
+| `int` ou `char` | `float` | **Rejeitado (Erro Semântico)** | Proibido para evitar perda silenciosa de precisão (truncamento decimal) |
+| `int`, `float` ou `char` | `STRING_LIT` ou `void` | **Rejeitado (Erro Semântico)** | Tipos incompatíveis |
+| Condição de `if`, `while`, `for` | `int`, `float` ou `char` | Aceito | Condição escalar numérica válida |
+| Condição de `if`, `while`, `for` | `STRING_LIT` ou `void` | **Rejeitado (Erro Semântico)** | Condição exige expressão numérica |
+
+#### 7.3. Regras de Uso de Strings (`STRING_LIT`)
+
+Como a linguagem não possui ponteiros (`char*`) nem vetores (`char[]`), literais de string (`"..."`) possuem uso restrito:
+- **Uso permitido:** Exclusivamente como argumento passado diretamente em chamadas de função (ex.: `processar("Hello World");`).
+- **Usos proibidos (geram Erro Semântico):**
+  - Inicializar ou atribuir `STRING_LIT` a variáveis (`int`, `float`, `char`);
+  - Utilizar `STRING_LIT` em operações aritméticas (`+`, `-`, `*`, `/`), relacionais ou lógicas;
+  - Utilizar `STRING_LIT` como expressão de condição em `if`, `while` ou `for`;
+  - Retornar `STRING_LIT` em um comando `return`.
+
+#### 7.4. Exemplos de Código (Tipos e Strings)
+
+**Exemplo Aceito (Semântica de Tipos Válida):**
+```c
+int calcular(int base) {
+    int a = 10;
+    float taxa = 2;          // Aceito: int promovido para float na inicializacao
+    float total = a + taxa;  // Aceito: int + float resulta em float
+
+    if (a > 0 && total >= 10.0) {
+        processar("Calculo concluido"); // Aceito: string literal como argumento de funcao
+        return a / 2;                   // Aceito: int / int resulta em int
+    }
+    return base;
+}
+```
+
+**Exemplo Rejeitado (Erros Semânticos de Tipos e Strings):**
+```c
+int exemplo_invalido() {
+    int x = 3.14;            // Erro semantico: atribuicao de float para int
+    int y = "texto";         // Erro semantico: atribuicao de string para int
+    float z = 10 + "abc";    // Erro semantico: operacao aritmetica com string
+
+    if ("condicao") {        // Erro semantico: string como condicao de if
+        return 1.5;          // Erro semantico: retorno float em funcao int
+    }
+    return "fim";            // Erro semantico: retorno de string
+}
+```
+
+---
+
+## 8. Histórico de Versões
 
 | Versão | Data | Autor(es) | Revisor(es) | Descrição |
 |--------|------|-----------|-------------|-----------|
@@ -966,5 +1045,6 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
 | 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
+| 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
 
 ---
