@@ -777,7 +777,7 @@ int exemplo_literais() {
     int i = 42;
     float f = 3.14;
     char c = 'x';
-    processar("texto");
+    printf("texto");
     return i;
 }
 ```
@@ -788,7 +788,7 @@ def exemplo_literais():
     i = 42
     f = 3.14
     c = 'x'
-    processar("texto")
+    print("texto")
     return i
 ```
 
@@ -1036,6 +1036,210 @@ int exemplo_invalido() {
 
 ---
 
+### Declarações, Nomes Repetidos e Escopo
+
+Esta parte define quando um nome pode ser declarado, quando dois nomes entram em conflito e em quais trechos do programa uma variável pode ser usada. As regras foram escolhidas para que todo programa aceito tenha uma tradução direta para Python e com o mesmo comportamento. O ponto central é que Python **não possui escopo de bloco**: uma variável criada dentro de um `if` ou de um laço continua existindo na função inteira. Por isso, algumas construções aceitas pelo C são proibidas aqui.
+
+#### 7.5. Categorias de nomes
+
+| Categoria | Onde é declarada | Escopo em que fica registrada |
+|-----------|------------------|-------------------------------|
+| Função | Protótipo ou definição (seção 4.1) | Global |
+| Função nativa | Pré-registrada pelo compilador (`printf`) | Global |
+| Parâmetro | Lista de parâmetros de uma definição de função | Escopo da função |
+| Variável local | Comando de declaração ou inicialização do `for` com tipo | Bloco em que aparece |
+
+- Não existem variáveis globais: a gramática (seção 4.1) só permite funções no nível do programa.
+- Existe um **único espaço de nomes**: o mesmo identificador não pode designar, ao mesmo tempo, uma função e uma variável/parâmetro.
+- `void` só é aceito como tipo de retorno. Variáveis e parâmetros `void` já são rejeitados pela gramática (`tipo` não inclui `void`), portanto esse caso é um erro sintático, não semântico.
+
+#### 7.6. Escopos
+
+| Construção | Escopo criado |
+|------------|---------------|
+| Programa | Escopo global, com as funções declaradas e as funções nativas |
+| Definição de função | Um escopo para a função; **parâmetros e o bloco do corpo compartilham esse mesmo escopo** |
+| Bloco de `if`, `else` e `while` | Novo escopo, aninhado no escopo em que o comando aparece |
+| `for` | Novo escopo que engloba o cabeçalho e o corpo; uma variável declarada em `inicializacao_for` só existe dentro do laço |
+| Protótipo de função | Nenhum: os nomes dos parâmetros de um protótipo não são registrados, servem apenas para verificar repetição |
+
+**Regras de visibilidade:**
+- A busca por um nome começa no escopo mais interno e segue para os mais externos, até o escopo global.
+- Uma variável é visível do fim da sua declaração até o fechamento do bloco em que foi declarada. Ao fechar o bloco, todas as variáveis dele deixam de existir.
+- A variável só passa a existir **depois** do seu inicializador. Em `int x = x + 1;`, o `x` do lado direito não se refere à variável sendo declarada.
+- O nome de uma função entra no escopo global assim que o seu cabeçalho é lido, antes do corpo. Por isso, chamadas recursivas são permitidas.
+
+#### 7.7. Nomes repetidos
+
+| # | Situação | Resultado | Justificativa |
+|---|----------|-----------|---------------|
+| 1 | Duas variáveis com o mesmo nome no mesmo bloco | **Erro semântico** | Redeclaração no mesmo escopo |
+| 2 | Variável local com o mesmo nome de um parâmetro, no corpo da função | **Erro semântico** | Parâmetros e corpo compartilham o escopo (7.6) |
+| 3 | Dois parâmetros com o mesmo nome (em definição ou protótipo) | **Erro semântico** | Redeclaração no mesmo escopo |
+| 4 | Variável em bloco interno com o nome de uma variável ou parâmetro visível de um bloco externo (*shadowing*) | **Erro semântico** | Em Python as duas seriam a mesma variável, e a atribuição interna alteraria a externa |
+| 5 | Variável declarada no `for` com nome já visível | **Erro semântico** | Mesmo motivo da regra 4 |
+| 6 | Mesmo nome em blocos irmãos (`if`/`else`, dois laços seguidos) | Aceito | Os escopos não se sobrepõem, e em Python o nome é apenas reutilizado |
+| 7 | Mesmo nome de variável em funções diferentes | Aceito | Cada função tem seu escopo; em Python, são variáveis locais distintas |
+| 8 | Variável ou parâmetro com o nome de uma função já declarada (inclusive a própria função e `printf`) | **Erro semântico** | Em Python, a variável local esconderia a função e impediria chamá-la |
+| 9 | Duas definições (com corpo) da mesma função | **Erro semântico** | Função definida duas vezes |
+| 10 | Protótipo seguido de definição, ou protótipo repetido, com a **mesma assinatura** | Aceito | Mesmo tipo de retorno e mesma quantidade e tipos de parâmetros, na mesma ordem |
+| 11 | Protótipo e definição (ou dois protótipos) com assinaturas diferentes | **Erro semântico** | Declarações incompatíveis da mesma função |
+| 12 | Função declarada ou definida com o nome de uma função nativa | **Erro semântico** | `printf` é reservado pelo compilador |
+| 13 | Identificador igual a uma palavra reservada do Python ou a um nome usado pelo tradutor | **Erro semântico** | O código Python gerado seria inválido ou mudaria de comportamento |
+
+Os nomes da regra 13 são válidos como identificadores em C, mas não podem ser usados em Python:
+
+```text
+False None True and as assert async await break class continue def del elif
+except finally from global import in is lambda nonlocal not or pass raise try
+with yield match case print
+```
+
+(`break` e `continue` não são palavras reservadas desta linguagem, ao contrário do C completo. `print` entra na lista porque `printf` é traduzido para `print`. `match` e `case` são palavras reservadas contextuais do Python e foram incluídas por segurança.)
+
+Optou-se por **rejeitar** esses nomes em vez de renomeá-los automaticamente na tradução. A rejeição é uma única consulta a uma lista fixa, enquanto a renomeação exigiria aplicar o novo nome de forma consistente em todos os usos e ainda poderia colidir com outro identificador do programa (por exemplo, renomear `lambda` para `lambda_` quando `lambda_` já existe).
+
+#### 7.8. Onde variáveis e funções podem ser usadas
+
+**Variáveis e parâmetros**
+- Podem aparecer em expressões, do lado esquerdo de uma atribuição e em `inicializacao_for` ou `atualizacao_for` sem tipo, desde que estejam **declarados antes** e **visíveis** naquele ponto (7.6).
+- Usar uma variável antes da sua declaração, fora do bloco em que foi declarada ou, no caso do `for`, depois do fim do laço, é erro semântico de variável não declarada.
+- Uma variável declarada sem inicialização pode ser lida antes de receber valor. Isso **não** é erro semântico, porque detectar esse caso exigiria analisar todos os caminhos de execução. Como o nome precisa existir em Python, a declaração sem inicialização é traduzida como `x = None`, qualquer que seja o tipo. Em C, ler uma variável não inicializada já é comportamento indefinido; assim, todo programa C bem definido continua funcionando, e um programa que leia o valor antes de atribuir falha de forma visível em Python, em vez de produzir um valor arbitrário.
+
+**Funções**
+- Uma função só pode ser chamada se tiver sido declarada (por protótipo ou definição) **antes** do ponto da chamada, ou se for uma função nativa.
+- Toda função declarada apenas por protótipo e chamada em algum ponto precisa ter uma definição no arquivo. Essa verificação é feita ao final da análise.
+- O nome de uma função não pode ser usado como valor (`x = soma;`) nem receber atribuição (`soma = 1;`).
+- O nome de uma variável ou parâmetro não pode ser chamado como função (`x(1);`).
+- A verificação da quantidade e dos tipos dos argumentos e do retorno de cada função fica para a análise de chamadas, parâmetros e retornos (Sprint 4). A compatibilidade de tipos segue a seção 7.2.
+
+**Função nativa `printf`**
+- Fica pré-registrada no escopo global antes do início da análise e pode ser chamada sem protótipo.
+- Não pode ser declarada nem definida pelo programa, e seu nome não pode ser usado por variáveis ou parâmetros.
+- Os argumentos aceitos seguem a seção 7.3.
+
+#### 7.9. Mensagens de erro
+
+Os erros semânticos seguem o mesmo formato dos erros sintáticos, com o número da linha da construção em que o erro foi detectado:
+
+```text
+Erro semantico na linha <N>: <mensagem>
+```
+
+| Regra violada | Mensagem |
+|---------------|----------|
+| Uso de variável não declarada ou fora de escopo | `variavel 'x' nao declarada` |
+| Redeclaração no mesmo escopo (7.7, regras 1 e 2) | `'x' ja declarado neste escopo (linha L)` |
+| Parâmetro repetido (regra 3) | `parametro 'a' repetido` |
+| *Shadowing* (regras 4 e 5) | `'x' oculta a declaracao do bloco externo (linha L)` |
+| Variável com nome de função (regra 8) | `'soma' e uma funcao e nao pode ser usado como variavel` |
+| Função usada como valor ou alvo de atribuição | `'soma' e uma funcao e nao pode ser usada como valor` |
+| Variável chamada como função | `'x' nao e uma funcao` |
+| Chamada de função não declarada | `funcao 'f' nao declarada` |
+| Função definida duas vezes (regra 9) | `funcao 'f' ja definida (linha L)` |
+| Assinaturas diferentes (regra 11) | `declaracao de 'f' incompativel com a anterior (linha L)` |
+| Protótipo chamado e nunca definido | `funcao 'f' declarada mas nunca definida` |
+| Redeclaração de função nativa (regra 12) | `'printf' e uma funcao nativa e nao pode ser redeclarada` |
+| Nome reservado (regra 13) | `nome 'lambda' e reservado na traducao para Python` |
+
+A análise não para no primeiro erro semântico: todos os erros encontrados são reportados, e o programa é rejeitado se houver pelo menos um. Uma declaração rejeitada não é registrada na tabela de símbolos; um uso posterior do mesmo nome será tratado como se ela não existisse.
+
+#### 7.10. Requisitos para a tabela de símbolos
+
+A estrutura da tabela de símbolos é definida em conjunto pelo grupo (issue 3.4). Para aplicar as regras desta parte, ela precisa, no mínimo:
+- guardar, para cada símbolo, o nome, a categoria (função, função nativa, parâmetro ou variável), o tipo, a linha da declaração e, para funções, a assinatura e se já foi definida;
+- organizar os escopos como uma pilha: abrir um escopo ao entrar em uma função, bloco ou `for`, e fechá-lo ao sair;
+- oferecer duas buscas: uma **apenas no escopo atual** (regras 1 a 3) e outra **em todos os escopos da função atual** (regras 4 e 5, já que Python trata a função inteira como um único escopo);
+- manter o escopo global até o fim da análise, para a verificação de protótipos sem definição.
+
+#### 7.11. Exemplos de Código (Declarações, Nomes e Escopo)
+
+**Exemplo Aceito:**
+```c
+int fatorial(int n);                          // Aceito: prototipo
+
+int fatorial(int n) {                         // Aceito: mesma assinatura do prototipo
+    if (n <= 1) {
+        return 1;
+    }
+    return n * fatorial(n - 1);               // Aceito: recursao, fatorial ja declarada
+}
+
+int principal() {
+    int total = 0;
+    for (int i = 0; i < 3; i = i + 1) {       // i existe apenas dentro do laco
+        total = total + fatorial(i);
+    }
+    for (int i = 0; i < 2; i = i + 1) {       // Aceito: o i anterior ja saiu de escopo
+        total = total + i;
+    }
+    if (total > 10) {
+        int resto = total - 10;               // resto existe apenas neste bloco
+        total = resto;
+    } else {
+        int resto = 0;                        // Aceito: bloco irmao
+        total = total + resto;
+    }
+    int contador;                             // Aceito: declaracao sem inicializacao (vira contador = None)
+    contador = total;
+    printf("fim");                            // Aceito: funcao nativa, sem prototipo
+    return contador;
+}
+
+int dobro(int total) {                        // Aceito: total de outra funcao nao conflita
+    return total * 2;
+}
+```
+
+**Exemplo Rejeitado:**
+```c
+int soma(int a, int a) {          // Erro semantico: parametro 'a' repetido
+    return a;
+}
+
+int calcula(int x) {
+    int x = 1;                    // Erro semantico: 'x' ja declarado neste escopo (parametro)
+    int y = 2;
+    int y = 3;                    // Erro semantico: 'y' ja declarado neste escopo
+    if (x > 0) {
+        int y = 4;                // Erro semantico: 'y' oculta a declaracao do bloco externo
+        int z = 5;
+    }
+    z = 1;                        // Erro semantico: variavel 'z' nao declarada (fora do bloco)
+    for (int i = 0; i < 3; i = i + 1) {
+        x = x + i;
+    }
+    x = i;                        // Erro semantico: variavel 'i' nao declarada (fora do for)
+    w = 2;                        // Erro semantico: variavel 'w' nao declarada (antes da declaracao)
+    int w = 0;
+    int soma = 0;                 // Erro semantico: 'soma' e uma funcao
+    x = soma;                     // Erro semantico: 'soma' e uma funcao e nao pode ser usada como valor
+    y(2);                         // Erro semantico: 'y' nao e uma funcao
+    nao_existe(1);                // Erro semantico: funcao 'nao_existe' nao declarada
+    int lambda = 0;               // Erro semantico: nome reservado em Python
+    return x;
+}
+
+int calcula(int x) {              // Erro semantico: funcao 'calcula' ja definida
+    return x;
+}
+
+void printf(int x) {              // Erro semantico: printf e uma funcao nativa
+}
+
+float media(int a);
+int media(int a) {                // Erro semantico: declaracao de 'media' incompativel com a anterior
+    return a;
+}
+
+int nunca(int a);
+int usa() {
+    return nunca(1);              // Erro semantico: funcao 'nunca' declarada mas nunca definida
+}
+```
+
+---
+
 ## 8. Histórico de Versões
 
 | Versão | Data | Autor(es) | Revisor(es) | Descrição |
@@ -1047,5 +1251,6 @@ int exemplo_invalido() {
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
 | 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
 | 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
+| 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
 
 ---
