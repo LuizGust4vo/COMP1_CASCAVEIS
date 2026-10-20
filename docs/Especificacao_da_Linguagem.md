@@ -964,9 +964,9 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 
 ## 7. Regras Semânticas
 
-### Combinações de Tipos e Uso de Strings
+### 7.1. Combinações de Tipos e Uso de Strings
 
-#### 7.1. Combinações de Tipos em Expressões
+#### 7.1.1. Combinações de Tipos em Expressões
 
 | Categoria | Operadores | Tipos dos Operandos Aceitos | Tipo Resultante | Regra Semântica |
 |-----------|------------|-----------------------------|-----------------|-----------------|
@@ -980,7 +980,7 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 
 Qualquer expressão aritmética, relacional ou lógica que utilize `void` ou `STRING_LIT` como operando é inválida e deve ser reportada como **erro semântico de incompatibilidade de tipos**.
 
-#### 7.2. Compatibilidade em Declarações com Inicialização, Atribuições (`=`) e Retorno (`return`)
+#### 7.1.2. Compatibilidade em Declarações com Inicialização, Atribuições (`=`) e Retorno (`return`)
 
 | Tipo Esperado (Variável ou Retorno da Função) | Tipo da Expressão Fornecida | Resultado | Justificativa |
 |-----------------------------------------------|-----------------------------|-----------|---------------|
@@ -992,7 +992,7 @@ Qualquer expressão aritmética, relacional ou lógica que utilize `void` ou `ST
 | Condição de `if`, `while`, `for` | `int`, `float` ou `char` | Aceito | Condição escalar numérica válida |
 | Condição de `if`, `while`, `for` | `STRING_LIT` ou `void` | **Rejeitado (Erro Semântico)** | Condição exige expressão numérica |
 
-#### 7.3. Regras de Uso de Strings (`STRING_LIT`)
+#### 7.1.3. Regras de Uso de Strings (`STRING_LIT`)
 Como a linguagem não possui ponteiros (`char*`), vetores (`char[]`) nem um tipo de dado `string` formal para declaração de variáveis ou parâmetros, literais de string (`"..."`) possuem uso estritamente isolado:
 - **Uso permitido:** Uma chamada de função pode receber um literal `STRING_LIT` diretamente como argumento (por exemplo, em funções nativas de saída como `printf`), **mesmo que a linguagem não possua um tipo string formal para declaração de parâmetros**. Esta permissão é uma exceção exclusiva para argumentos literais diretos.
 - **Usos proibidos (geram Erro Semântico):**
@@ -1003,7 +1003,7 @@ Como a linguagem não possui ponteiros (`char*`), vetores (`char[]`) nem um tipo
 
 *(Nota: Nos exemplos, printf representa uma função nativa do compilador, definida para aceitar um literal STRING_LIT diretamente como argumento. Funções personalizadas só poderão receber strings se essa regra for explicitamente definida para elas; a declaração comum de parâmetros continua limitada aos tipos previstos na gramática.)*
 
-#### 7.4. Exemplos de Código (Tipos e Strings)
+#### 7.1.4. Exemplos de Código (Tipos e Strings)
 
 **Exemplo Aceito (Semântica de Tipos Válida):**
 ```c
@@ -1036,11 +1036,13 @@ int exemplo_invalido() {
 
 ---
 
-### Declarações, Nomes Repetidos e Escopo
+### 7.2. Declarações, Nomes Repetidos e Escopo
 
 Esta parte define quando um nome pode ser declarado, quando dois nomes entram em conflito e em quais trechos do programa uma variável pode ser usada. As regras foram escolhidas para que todo programa aceito tenha uma tradução direta para Python e com o mesmo comportamento. O ponto central é que Python **não possui escopo de bloco**: uma variável criada dentro de um `if` ou de um laço continua existindo na função inteira. Por isso, algumas construções aceitas pelo C são proibidas aqui.
 
-#### 7.5. Categorias de nomes
+---
+
+#### 7.2.1. Categorias de nomes
 
 | Categoria | Onde é declarada | Escopo em que fica registrada |
 |-----------|------------------|-------------------------------|
@@ -1053,7 +1055,7 @@ Esta parte define quando um nome pode ser declarado, quando dois nomes entram em
 - Existe um **único espaço de nomes**: o mesmo identificador não pode designar, ao mesmo tempo, uma função e uma variável/parâmetro.
 - `void` só é aceito como tipo de retorno. Variáveis e parâmetros `void` já são rejeitados pela gramática (`tipo` não inclui `void`), portanto esse caso é um erro sintático, não semântico.
 
-#### 7.6. Escopos
+#### 7.2.2. Escopos
 
 | Construção | Escopo criado |
 |------------|---------------|
@@ -1069,7 +1071,7 @@ Esta parte define quando um nome pode ser declarado, quando dois nomes entram em
 - A variável só passa a existir **depois** do seu inicializador. Em `int x = x + 1;`, o `x` do lado direito não se refere à variável sendo declarada.
 - O nome de uma função entra no escopo global assim que o seu cabeçalho é lido, antes do corpo. Por isso, chamadas recursivas são permitidas.
 
-#### 7.7. Nomes repetidos
+#### 7.2.3. Nomes repetidos
 
 | # | Situação | Resultado | Justificativa |
 |---|----------|-----------|---------------|
@@ -1099,7 +1101,7 @@ with yield match case print
 
 Optou-se por **rejeitar** esses nomes em vez de renomeá-los automaticamente na tradução. A rejeição é uma única consulta a uma lista fixa, enquanto a renomeação exigiria aplicar o novo nome de forma consistente em todos os usos e ainda poderia colidir com outro identificador do programa (por exemplo, renomear `lambda` para `lambda_` quando `lambda_` já existe).
 
-#### 7.8. Onde variáveis e funções podem ser usadas
+#### 7.2.4. Onde variáveis e funções podem ser usadas
 
 **Variáveis e parâmetros**
 - Podem aparecer em expressões, do lado esquerdo de uma atribuição e em `inicializacao_for` ou `atualizacao_for` sem tipo, desde que estejam **declarados antes** e **visíveis** naquele ponto (7.6).
@@ -1118,7 +1120,7 @@ Optou-se por **rejeitar** esses nomes em vez de renomeá-los automaticamente na 
 - Não pode ser declarada nem definida pelo programa, e seu nome não pode ser usado por variáveis ou parâmetros.
 - Os argumentos aceitos seguem a seção 7.3.
 
-#### 7.9. Mensagens de erro
+#### 7.2.5. Mensagens de erro
 
 Os erros semânticos seguem o mesmo formato dos erros sintáticos, com o número da linha da construção em que o erro foi detectado:
 
@@ -1144,7 +1146,7 @@ Erro semantico na linha <N>: <mensagem>
 
 A análise não para no primeiro erro semântico: todos os erros encontrados são reportados, e o programa é rejeitado se houver pelo menos um. Uma declaração rejeitada não é registrada na tabela de símbolos; um uso posterior do mesmo nome será tratado como se ela não existisse.
 
-#### 7.10. Requisitos para a tabela de símbolos
+#### 7.2.6. Requisitos para a tabela de símbolos
 
 A estrutura da tabela de símbolos é definida em conjunto pelo grupo (issue 3.4). Para aplicar as regras desta parte, ela precisa, no mínimo:
 - guardar, para cada símbolo, o nome, a categoria (função, função nativa, parâmetro ou variável), o tipo, a linha da declaração e, para funções, a assinatura e se já foi definida;
@@ -1152,7 +1154,7 @@ A estrutura da tabela de símbolos é definida em conjunto pelo grupo (issue 3.4
 - oferecer duas buscas: uma **apenas no escopo atual** (regras 1 a 3) e outra **em todos os escopos da função atual** (regras 4 e 5, já que Python trata a função inteira como um único escopo);
 - manter o escopo global até o fim da análise, para a verificação de protótipos sem definição.
 
-#### 7.11. Exemplos de Código (Declarações, Nomes e Escopo)
+#### 7.2.7. Exemplos de Código (Declarações, Nomes e Escopo)
 
 **Exemplo Aceito:**
 ```c
@@ -1240,7 +1242,223 @@ int usa() {
 
 ---
 
-## 8. Histórico de Versões
+## 8. Contrato entre Lexer, Parser, AST, Tabela de Símbolos e Semântico
+
+Esta seção define as responsabilidades e os dados compartilhados entre os módulos que compõem o compilador durante a Sprint 3.
+
+O objetivo é estabelecer uma interface comum entre as etapas de análise, evitando que diferentes módulos implementem regras ou estruturas incompatíveis.
+
+O fluxo previsto é:
+
+```text
+Código-fonte C
+      ↓
+Lexer (Flex)
+      ↓
+Parser (Bison)
+      ↓
+AST + Tabela de Símbolos
+      ↓
+Análise Semântica
+      ↓
+Resultado da análise
+```
+
+---
+
+### 8.1. Fluxo entre os módulos
+
+O `main.c` continuará sendo o ponto de entrada do compilador e será responsável por iniciar e coordenar as etapas de análise.
+
+O fluxo será realizado da seguinte forma:
+
+1. O Lexer lê o código-fonte e reconhece os tokens.
+2. O Parser recebe os tokens e verifica se sua organização obedece à gramática.
+3. Durante a análise sintática, o Parser constrói a AST.
+4. Declarações e parâmetros reconhecidos pelo Parser são registrados na Tabela de Símbolos.
+5. Após a construção da AST, o módulo semântico percorre a árvore e utiliza as informações da Tabela de Símbolos para realizar as verificações semânticas.
+6. O programa é considerado válido somente se não houver erros nas etapas léxica, sintática e semântica.
+
+---
+
+### 8.2. Lexer → Parser
+
+O Lexer, implementado em `src/lexer.l`, é responsável por reconhecer os elementos léxicos do código-fonte e fornecê-los ao Parser.
+
+Para cada elemento reconhecido, o Lexer deverá fornecer:
+
+- o token correspondente;
+- o nome de identificadores;
+- o valor de literais inteiros;
+- o valor de literais de ponto flutuante;
+- o valor de literais de caractere;
+- o conteúdo de strings;
+- o número da linha em que o elemento foi reconhecido.
+
+Tokens que não possuem um valor associado, como palavras reservadas e delimitadores, precisam apenas indicar seu tipo.
+
+Exemplo:
+
+```c
+int idade = 20;
+```
+
+deverá produzir informações equivalentes a:
+
+```text
+INT
+ID("idade")
+ASSIGN
+NUM_INT(20)
+SEMI
+```
+
+O número da linha deverá permanecer disponível para que erros sintáticos e semânticos possam indicar a posição correspondente no código-fonte.
+
+---
+
+### 8.3. Parser → AST
+
+O Parser, implementado em `src/parser.y`, continuará responsável pela validação da estrutura sintática do programa.
+
+Além da validação, o Parser deverá utilizar as funções disponibilizadas pelo módulo da AST para construir uma representação estruturada do código reconhecido.
+
+Inicialmente, a AST deverá ser capaz de representar:
+
+- declarações;
+- atribuições;
+- expressões;
+- literais e identificadores;
+- comandos `return`;
+- funções;
+- parâmetros;
+- blocos;
+- estruturas `if/else`.
+
+Cada nó deverá armazenar as informações necessárias para as etapas posteriores, incluindo, quando aplicável:
+
+- tipo do nó;
+- valor ou nome associado;
+- linha do código-fonte;
+- referências para seus nós filhos.
+
+A definição concreta das estruturas e das funções de criação dos nós será responsabilidade do módulo `ast.h`/`ast.c`.
+
+O Parser deverá apenas utilizar a interface pública disponibilizada pela AST, sem depender de detalhes internos de sua implementação.
+
+---
+
+### 8.4. Parser → Tabela de Símbolos
+
+Durante o reconhecimento de declarações e parâmetros, o Parser deverá registrar os símbolos encontrados utilizando a interface da Tabela de Símbolos.
+
+Cada símbolo deverá armazenar, no mínimo:
+
+- nome;
+- tipo;
+- categoria;
+- escopo;
+- linha da declaração.
+
+As categorias iniciais poderão incluir:
+
+- variável;
+- parâmetro;
+- função;
+- função nativa.
+
+A Tabela de Símbolos deverá oferecer operações para:
+
+- inserir símbolos;
+- buscar símbolos no escopo atual;
+- buscar símbolos nos escopos visíveis;
+- abrir um novo escopo;
+- fechar um escopo.
+
+A entrada e saída de escopos deverá acompanhar a entrada e saída de funções, blocos e estruturas que criem um novo escopo conforme as regras definidas nesta especificação.
+
+Problemas encontrados durante o cadastro, como redeclarações, deverão permanecer registrados para que a etapa semântica possa posteriormente apresentar o erro correspondente.
+
+---
+
+### 8.5. AST + Tabela de Símbolos → Análise Semântica
+
+Após a construção da AST e o cadastro inicial dos símbolos, o módulo de análise semântica deverá percorrer a árvore e utilizar as informações armazenadas na Tabela de Símbolos.
+
+Inicialmente, a análise semântica deverá verificar:
+
+- uso de variáveis não declaradas;
+- uso de identificadores fora de seu escopo;
+- redeclarações inválidas;
+- compatibilidade de tipos em declarações com inicialização;
+- compatibilidade de tipos em atribuições;
+- compatibilidade básica de tipos em expressões.
+
+A análise semântica não deverá cadastrar novamente símbolos que já tenham sido registrados durante a análise sintática.
+
+Quando ocorrer um erro semântico, deverá ser utilizada, sempre que disponível, a linha armazenada na AST ou na Tabela de Símbolos.
+
+O formato das mensagens seguirá a convenção:
+
+```text
+Erro semantico na linha <N>: <mensagem>
+```
+
+---
+
+### 8.6. Responsabilidades do `main.c`
+
+O `main.c` continuará funcionando como coordenador das etapas do compilador.
+
+Suas responsabilidades serão:
+
+- abrir a entrada do programa;
+- iniciar a análise sintática através do Bison;
+- obter a raiz da AST construída;
+- manter disponíveis as estruturas utilizadas durante a compilação;
+- iniciar a análise semântica após o sucesso das etapas léxica e sintática;
+- informar se o programa foi aceito ou rejeitado;
+- liberar os recursos utilizados ao final da execução.
+
+O fluxo conceitual será:
+
+```text
+abrir entrada
+     ↓
+yyparse()
+     ↓
+AST construída
+     ↓
+análise semântica
+     ↓
+resultado
+     ↓
+liberação dos recursos
+```
+
+Também deverá ser mantida uma forma de executar somente as análises léxica e sintática, permitindo preservar os testes desenvolvidos nas etapas anteriores do projeto.
+
+---
+
+### 8.7. Gerenciamento de memória e ciclo de vida das estruturas
+
+As estruturas criadas durante a compilação deverão permanecer válidas enquanto forem necessárias pelas etapas posteriores.
+
+A AST deverá permanecer disponível após o término do Parser, pois será utilizada pela análise semântica.
+
+Da mesma forma, os registros da Tabela de Símbolos necessários para a análise semântica não deverão ser descartados ao encerrar um escopo.
+
+O encerramento de um escopo deverá apenas alterar a visibilidade dos símbolos, preservando as informações necessárias às verificações posteriores.
+
+O módulo da AST deverá disponibilizar uma operação para liberar todos os nós da árvore ao final da análise.
+
+A Tabela de Símbolos também deverá disponibilizar uma forma de liberar seus registros quando o processo de compilação terminar.
+
+A coordenação da liberação final das estruturas será responsabilidade do programa principal.
+
+---
+
+## 9. Histórico de Versões
 
 | Versão | Data | Autor(es) | Revisor(es) | Descrição |
 |--------|------|-----------|-------------|-----------|
@@ -1252,5 +1470,6 @@ int usa() {
 | 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
 | 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
 | 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
+| 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
 
 ---
