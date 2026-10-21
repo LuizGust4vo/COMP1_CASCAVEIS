@@ -1436,7 +1436,7 @@ resultado
 liberação dos recursos
 ```
 
-Também deverá ser mantida uma forma de executar somente as análises léxica e sintática, permitindo preservar os testes desenvolvidos nas etapas anteriores do projeto.
+Também deverá ser mantida uma forma de executar somente as análises léxica e sintática, permitindo preservar os testes desenvolvidos nas etapas anteriores do projeto. Essa forma é definida na seção 8.8.
 
 ---
 
@@ -1456,6 +1456,64 @@ A Tabela de Símbolos também deverá disponibilizar uma forma de liberar seus r
 
 A coordenação da liberação final das estruturas será responsabilidade do programa principal.
 
+### 8.8. Execução somente das análises léxica e sintática
+ 
+A partir da Sprint 3, o programa passa a ter uma etapa a mais: a análise semântica (seção 7). Os testes das Sprints 1 e 2, em `tests/validos/` e `tests/invalidos/`, verificam apenas o léxico e a sintaxe. Eles precisam continuar dando o mesmo resultado mesmo que uma entrada viole alguma regra semântica, pois um arquivo sintaticamente correto não deve passar a ser rejeitado por um erro que esses testes não pretendem verificar.
+ 
+Para isso, o executável (`lexer_test`, gerado pelo `make build`) terá dois modos de execução.
+ 
+#### 8.8.1. Modos de execução
+ 
+| Modo | Como executar | Etapas executadas | Quando usar |
+|------|---------------|-------------------|-------------|
+| Completo (padrão) | `./lexer_test arquivo.c` ou `./lexer_test < arquivo.c` | léxica, sintática e semântica | uso normal do compilador e testes semânticos |
+| Somente léxico/sintático | `./lexer_test --sintatico arquivo.c` ou `./lexer_test --sintatico < arquivo.c` | léxica e sintática | testes de `tests/validos/` e `tests/invalidos/` |
+ 
+#### 8.8.2. Regras do modo `--sintatico`
+ 
+- A opção `--sintatico` é informada antes do nome do arquivo. Sem nome de arquivo, o programa lê a entrada padrão, como no modo completo.
+- O `main.c` não inicia a análise semântica nesse modo. O resultado depende apenas de `yyparse()` e de `erros_lexicos`: o programa é aceito somente se `yyparse()` retornar 0 e não houver erros léxicos.
+- O Parser continua construindo a AST e cadastrando símbolos normalmente (seções 8.3 e 8.4), pois isso faz parte da análise sintática. Nenhum erro semântico é reportado, e problemas registrados no cadastro, como redeclarações, não afetam o resultado.
+- As mensagens de erro léxico e sintático e as mensagens finais (`Analise concluida: programa aceito.` e `Analise concluida: programa rejeitado.`) permanecem iguais às já usadas. Nenhuma linha `Erro semantico` é impressa nesse modo.
+- O código de saída continua sendo `0` para programa aceito e `1` para programa rejeitado. Uma opção desconhecida é tratada como erro: o programa imprime `opcao desconhecida: <opcao>` e retorna `1`.
+- Enquanto a análise semântica não estiver implementada, os dois modos produzem o mesmo resultado. O modo completo continua compatível com o comportamento atual.
+#### 8.8.3. Uso nos testes
+ 
+- Os alvos `make test-validos` e `make test-invalidos` (e, por consequência, `make test`) passam a executar o programa com `--sintatico`, mantendo a leitura por redirecionamento (`./lexer_test --sintatico < arquivo.c`).
+- Os testes da análise semântica devem ficar separados, em `tests/semantica/`, e ser executados sem a opção, para que os dois tipos de teste não se misturem.
+#### 8.8.4. Exemplos de Código (Modos de Execução)
+ 
+**Exemplo 1 — sintaticamente válido, semanticamente inválido.** O arquivo `exemplo_tipos.c` atribui uma string a uma variável `int`, o que a seção 7.1.3 proíbe:
+ 
+```c
+int principal() {
+    int x = "texto";
+    return x;
+}
+```
+ 
+| Comando | Resultado |
+|---------|-----------|
+| `./lexer_test --sintatico exemplo_tipos.c` | **Aceito**: `Analise concluida: programa aceito.` (código `0`) |
+| `./lexer_test exemplo_tipos.c` | **Rejeitado** pela análise semântica, por incompatibilidade de tipos (código `1`) |
+ 
+**Exemplo 2 — sintaticamente inválido.** Falta o `;` na linha 2. O erro é rejeitado nos dois modos, pois a sintaxe é verificada antes da análise semântica:
+ 
+```c
+int principal() {
+    int x = 1
+    return x;
+}
+```
+ 
+| Comando | Resultado |
+|---------|-----------|
+| `./lexer_test --sintatico exemplo_sintaxe.c` | **Rejeitado**: `Erro sintatico na linha 3: syntax error, unexpected RETURN` (código `1`) |
+| `./lexer_test exemplo_sintaxe.c` | **Rejeitado**, com a mesma mensagem (código `1`) |
+ 
+O erro é apontado na linha 3 porque o Parser só percebe a falta do `;` ao ler o token `return`.
+ 
+---
 ---
 
 ## 9. Histórico de Versões
@@ -1471,5 +1529,6 @@ A coordenação da liberação final das estruturas será responsabilidade do pr
 | 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
 | 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
 | 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
+| 1.9 | 20/10/2026 | Ana Caroline | - | Definição da execução somente das análises léxica e sintática para os testes da fase |
 
 ---
