@@ -33,6 +33,63 @@ static char *copia_texto(const char *texto) {
     return copia;
 }
 
+AstNo *ast_programa(AstNo *funcoes) {
+    AstNo *no = novo_no(AST_PROGRAMA, 1);
+    no->filho[0] = funcoes;
+    return no;
+}
+
+AstNo *ast_funcao(AstTipoDado retorno, const char *nome, AstNo *parametros, AstNo *corpo, int linha) {
+    AstNo *no = novo_no(AST_FUNCAO, linha);
+    no->tipo_dado = retorno;
+    no->texto = copia_texto(nome);
+    no->filho[0] = parametros;
+    no->filho[1] = corpo;
+    return no;
+}
+
+AstNo *ast_parametro(AstTipoDado tipo, const char *nome, int linha) {
+    AstNo *no = novo_no(AST_PARAMETRO, linha);
+    no->tipo_dado = tipo;
+    no->texto = copia_texto(nome);
+    return no;
+}
+
+AstNo *ast_bloco(AstNo *comandos, int linha) {
+    AstNo *no = novo_no(AST_BLOCO, linha);
+    no->filho[0] = comandos;
+    return no;
+}
+
+AstNo *ast_declaracao(AstTipoDado tipo, const char *nome, AstNo *inicializacao, int linha) {
+    AstNo *no = novo_no(AST_DECLARACAO, linha);
+    no->tipo_dado = tipo;
+    no->texto = copia_texto(nome);
+    no->filho[0] = inicializacao;
+    return no;
+}
+
+AstNo *ast_atribuicao(const char *nome, AstNo *valor, int linha) {
+    AstNo *no = novo_no(AST_ATRIBUICAO, linha);
+    no->texto = copia_texto(nome);
+    no->filho[0] = valor;
+    return no;
+}
+
+AstNo *ast_retorno(AstNo *valor, int linha) {
+    AstNo *no = novo_no(AST_RETORNO, linha);
+    no->filho[0] = valor;
+    return no;
+}
+
+AstNo *ast_if(AstNo *condicao, AstNo *entao, AstNo *senao, int linha) {
+    AstNo *no = novo_no(AST_IF, linha);
+    no->filho[0] = condicao;
+    no->filho[1] = entao;
+    no->filho[2] = senao;
+    return no;
+}
+
 AstNo *ast_chamada(const char *nome, AstNo *argumentos, int linha) {
     AstNo *no = novo_no(AST_CHAMADA, linha);
     no->texto = copia_texto(nome);
@@ -83,6 +140,18 @@ AstNo *ast_id(const char *nome, int linha) {
     AstNo *no = novo_no(AST_ID, linha);
     no->texto = copia_texto(nome);
     return no;
+}
+
+AstNo *ast_lista_anexa(AstNo *lista, AstNo *item) {
+    if (!lista) {
+        return item;
+    }
+    AstNo *ultimo = lista;
+    while (ultimo->proximo) {
+        ultimo = ultimo->proximo;
+    }
+    ultimo->proximo = item;
+    return lista;
 }
 
 void ast_libera(AstNo *no) {
