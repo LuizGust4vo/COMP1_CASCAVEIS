@@ -1456,6 +1456,8 @@ A Tabela de Símbolos também deverá disponibilizar uma forma de liberar seus r
 
 A coordenação da liberação final das estruturas será responsabilidade do programa principal.
 
+---
+
 ### 8.8. Execução somente das análises léxica e sintática
  
 A partir da Sprint 3, o programa passa a ter uma etapa a mais: a análise semântica (seção 7). Os testes das Sprints 1 e 2, em `tests/validos/` e `tests/invalidos/`, verificam apenas o léxico e a sintaxe. Eles precisam continuar dando o mesmo resultado mesmo que uma entrada viole alguma regra semântica, pois um arquivo sintaticamente correto não deve passar a ser rejeitado por um erro que esses testes não pretendem verificar.
@@ -1477,10 +1479,12 @@ Para isso, o executável (`lexer_test`, gerado pelo `make build`) terá dois mod
 - As mensagens de erro léxico e sintático e as mensagens finais (`Analise concluida: programa aceito.` e `Analise concluida: programa rejeitado.`) permanecem iguais às já usadas. Nenhuma linha `Erro semantico` é impressa nesse modo.
 - O código de saída continua sendo `0` para programa aceito e `1` para programa rejeitado. Uma opção desconhecida é tratada como erro: o programa imprime `opcao desconhecida: <opcao>` e retorna `1`.
 - Enquanto a análise semântica não estiver implementada, os dois modos produzem o mesmo resultado. O modo completo continua compatível com o comportamento atual.
+
 #### 8.8.3. Uso nos testes
  
 - Os alvos `make test-validos` e `make test-invalidos` (e, por consequência, `make test`) passam a executar o programa com `--sintatico`, mantendo a leitura por redirecionamento (`./lexer_test --sintatico < arquivo.c`).
-- Os testes da análise semântica devem ficar separados, em `tests/semantica/`, e ser executados sem a opção, para que os dois tipos de teste não se misturem.
+- Os testes da análise semântica devem ficar separados em `tests/semanticos/validos/` e `tests/semanticos/invalidos/` e devem ser executados sem a opção `--sintatico`, para que os dois tipos de teste não se misturem.
+  
 #### 8.8.4. Exemplos de Código (Modos de Execução)
  
 **Exemplo 1 — sintaticamente válido, semanticamente inválido.** O arquivo `exemplo_tipos.c` atribui uma string a uma variável `int`, o que a seção 7.1.3 proíbe:
@@ -1514,7 +1518,6 @@ int principal() {
 O erro é apontado na linha 3 porque o Parser só percebe a falta do `;` ao ler o token `return`.
  
 ---
----
 
 ## 9. Histórico de Versões
 
@@ -1529,6 +1532,6 @@ O erro é apontado na linha 3 porque o Parser só percebe a falta do `;` ao ler 
 | 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
 | 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
 | 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
-| 1.9 | 20/10/2026 | Ana Caroline | - | Definição da execução somente das análises léxica e sintática para os testes da fase |
+| 1.9 | 20/10/2026 | Ana Caroline | Luiz Almeida | Definição da execução somente das análises léxica e sintática para os testes da fase |
 
 ---
