@@ -20,7 +20,7 @@ ifeq ($(OS),Windows_NT)
 	exec = .\\$(target)
 	ast_target = ast_test.exe
 	ast_exec = .\\$(ast_target)
-	rm = powershell -Command "Remove-Item -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target)"
+	rm = powershell -Command "Remove-Item -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target), ast_saida.tmp"
 	run_tests_validos = powershell -Command 'Get-ChildItem $(test_dir_validos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando valido:" $$_.Name -ForegroundColor Green; Get-Content $$_.FullName | $(exec) }'
 	run_tests_invalidos = powershell -Command 'Get-ChildItem $(test_dir_invalidos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando invalido:" $$_.Name -ForegroundColor Red; Get-Content $$_.FullName | $(exec) }'
 else
@@ -28,7 +28,7 @@ else
 	exec = ./$(target)
 	ast_target = ast_test
 	ast_exec = ./$(ast_target)
-	rm = rm -f $(lex_out) $(parser_out) $(parser_header) src/parser.output $(target) $(ast_target)
+	rm = rm -f $(lex_out) $(parser_out) $(parser_header) src/parser.output $(target) $(ast_target) ast_saida.tmp
 	run_tests_validos = for file in $(test_dir_validos)/*.c; do \
 		if [ -f "$$file" ]; then \
 			echo "\033[1;32mtestando valido: $$file\033[0m"; \

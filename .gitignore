@@ -7,3 +7,4 @@ lexer_test
 lexer_test.exe
 ast_test
 ast_test.exe
+ast_saida.tmp

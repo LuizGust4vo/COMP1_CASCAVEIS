@@ -134,11 +134,14 @@ static void testa_atribuicao_e_retorno(void) {
     VERIFICA(ast_nos_alocados() == 0);
 }
 
+/* arquivo no diretorio atual: tmpfile() pode falhar no Windows (MinGW grava em C:\\) */
+#define ARQUIVO_SAIDA "ast_saida.tmp"
+
 /* imprime a arvore em um arquivo temporario e devolve o conteudo (liberar com free) */
 static char *imprime_em_texto(const AstNo *no) {
-    FILE *tmp = tmpfile();
+    FILE *tmp = fopen(ARQUIVO_SAIDA, "w+");
     if (!tmp) {
-        perror("tmpfile");
+        perror("erro ao criar " ARQUIVO_SAIDA);
         exit(1);
     }
     ast_imprime(tmp, no);
@@ -148,6 +151,7 @@ static char *imprime_em_texto(const AstNo *no) {
     size_t lidos = fread(s, 1, tamanho, tmp);
     s[lidos] = '\0';
     fclose(tmp);
+    remove(ARQUIVO_SAIDA);
     return s;
 }
 
