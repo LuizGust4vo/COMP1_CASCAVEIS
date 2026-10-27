@@ -134,6 +134,93 @@ static void testa_atribuicao_e_retorno(void) {
     VERIFICA(ast_nos_alocados() == 0);
 }
 
+/* imprime a arvore em um arquivo temporario e devolve o conteudo (liberar com free) */
+static char *imprime_em_texto(const AstNo *no) {
+    FILE *tmp = tmpfile();
+    if (!tmp) {
+        perror("tmpfile");
+        exit(1);
+    }
+    ast_imprime(tmp, no);
+    long tamanho = ftell(tmp);
+    rewind(tmp);
+    char *s = malloc(tamanho + 1);
+    size_t lidos = fread(s, 1, tamanho, tmp);
+    s[lidos] = '\0';
+    fclose(tmp);
+    return s;
+}
+
+static void testa_impressao_soma(void) {
+    AstNo *e = ast_binario(OP_SOMA, ast_num_int(2, 1), ast_num_int(3, 1), 1);
+    char *s = imprime_em_texto(e);
+    VERIFICA(strcmp(s, "BINARIO +\n  NUM_INT 2\n  NUM_INT 3\n") == 0);
+    free(s);
+    ast_libera(e);
+    VERIFICA(ast_nos_alocados() == 0);
+}
+
+static void testa_impressao_classifica(void) {
+    const char *esperado =
+        "PROGRAMA\n"
+        "  FUNCAO int classifica\n"
+        "    PARAMETRO int n\n"
+        "    BLOCO\n"
+        "      IF\n"
+        "        BINARIO >\n"
+        "          ID n\n"
+        "          NUM_INT 0\n"
+        "        BLOCO\n"
+        "          RETORNO\n"
+        "            NUM_INT 1\n"
+        "        ELSE\n"
+        "        BLOCO\n"
+        "          RETORNO\n"
+        "            UNARIO -\n"
+        "              NUM_INT 1\n";
+    AstNo *p = monta_classifica();
+    char *s = imprime_em_texto(p);
+    VERIFICA(strcmp(s, esperado) == 0);
+    if (strcmp(s, esperado) != 0) {
+        fprintf(stderr, "obtido:\n%s", s);
+    }
+    free(s);
+    ast_libera(p);
+    VERIFICA(ast_nos_alocados() == 0);
+}
+
+static void testa_impressao_opcionais(void) {
+    const char *esperado =
+        "BLOCO\n"
+        "  DECLARACAO int x\n"
+        "  ATRIBUICAO c\n"
+        "    CHAR_LIT 'x'\n"
+        "  CHAMADA printf\n"
+        "    STRING_LIT \"fim\"\n"
+        "    NUM_FLOAT 3.14\n";
+    AstNo *args = ast_lista_anexa(NULL, ast_string_lit("fim", 3));
+    args = ast_lista_anexa(args, ast_num_float(3.14, 3));
+    AstNo *cmds = ast_lista_anexa(NULL, ast_declaracao(TIPO_INT, "x", NULL, 1));
+    cmds = ast_lista_anexa(cmds, ast_atribuicao("c", ast_char_lit("x", 2), 2));
+    cmds = ast_lista_anexa(cmds, ast_chamada("printf", args, 3));
+    AstNo *b = ast_bloco(cmds, 1);
+    char *s = imprime_em_texto(b);
+    VERIFICA(strcmp(s, esperado) == 0);
+    if (strcmp(s, esperado) != 0) {
+        fprintf(stderr, "obtido:\n%s", s);
+    }
+    free(s);
+
+    AstNo *proto = ast_funcao(TIPO_VOID, "f", NULL, NULL, 5);
+    s = imprime_em_texto(proto);
+    VERIFICA(strcmp(s, "FUNCAO void f (prototipo)\n") == 0);
+    free(s);
+
+    ast_libera(b);
+    ast_libera(proto);
+    VERIFICA(ast_nos_alocados() == 0);
+}
+
 int main(void) {
     testa_soma_2_mais_3();
     testa_copia_de_texto();
@@ -144,6 +231,9 @@ int main(void) {
     testa_funcao_classifica();
     testa_opcionais_nulos();
     testa_atribuicao_e_retorno();
+    testa_impressao_soma();
+    testa_impressao_classifica();
+    testa_impressao_opcionais();
 
     if (falhas) {
         printf("Testes da AST: %d falha(s)\n", falhas);

@@ -154,6 +154,88 @@ AstNo *ast_lista_anexa(AstNo *lista, AstNo *item) {
     return lista;
 }
 
+static void imprime_no(FILE *saida, const AstNo *no, int nivel);
+
+/* imprime todos os itens de uma lista no mesmo nivel */
+static void imprime_lista(FILE *saida, const AstNo *primeiro, int nivel) {
+    for (const AstNo *item = primeiro; item; item = item->proximo) {
+        imprime_no(saida, item, nivel);
+    }
+}
+
+static void imprime_no(FILE *saida, const AstNo *no, int nivel) {
+    fprintf(saida, "%*s", nivel * 2, "");
+
+    switch (no->tipo) {
+        case AST_PROGRAMA:
+            fprintf(saida, "PROGRAMA\n");
+            break;
+        case AST_FUNCAO:
+            fprintf(saida, "FUNCAO %s %s%s\n", ast_nome_tipo_dado(no->tipo_dado), no->texto,
+                    no->filho[1] ? "" : " (prototipo)");
+            break;
+        case AST_PARAMETRO:
+            fprintf(saida, "PARAMETRO %s %s\n", ast_nome_tipo_dado(no->tipo_dado), no->texto);
+            break;
+        case AST_BLOCO:
+            fprintf(saida, "BLOCO\n");
+            break;
+        case AST_DECLARACAO:
+            fprintf(saida, "DECLARACAO %s %s\n", ast_nome_tipo_dado(no->tipo_dado), no->texto);
+            break;
+        case AST_ATRIBUICAO:
+            fprintf(saida, "ATRIBUICAO %s\n", no->texto);
+            break;
+        case AST_RETORNO:
+            fprintf(saida, "RETORNO\n");
+            break;
+        case AST_IF:
+            fprintf(saida, "IF\n");
+            break;
+        case AST_CHAMADA:
+            fprintf(saida, "CHAMADA %s\n", no->texto);
+            break;
+        case AST_BINARIO:
+            fprintf(saida, "BINARIO %s\n", ast_simbolo_operador(no->op));
+            break;
+        case AST_UNARIO:
+            fprintf(saida, "UNARIO %s\n", ast_simbolo_operador(no->op));
+            break;
+        case AST_NUM_INT:
+            fprintf(saida, "NUM_INT %d\n", no->valor_int);
+            break;
+        case AST_NUM_FLOAT:
+            fprintf(saida, "NUM_FLOAT %g\n", no->valor_float);
+            break;
+        case AST_CHAR_LIT:
+            fprintf(saida, "CHAR_LIT '%s'\n", no->texto);
+            break;
+        case AST_STRING_LIT:
+            fprintf(saida, "STRING_LIT \"%s\"\n", no->texto);
+            break;
+        case AST_ID:
+            fprintf(saida, "ID %s\n", no->texto);
+            break;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        if (!no->filho[i]) {
+            continue;
+        }
+        /* marca o inicio do bloco senao para diferencia-lo do bloco entao */
+        if (no->tipo == AST_IF && i == 2) {
+            fprintf(saida, "%*sELSE\n", (nivel + 1) * 2, "");
+        }
+        imprime_lista(saida, no->filho[i], nivel + 1);
+    }
+}
+
+void ast_imprime(FILE *saida, const AstNo *no) {
+    if (no) {
+        imprime_no(saida, no, 0);
+    }
+}
+
 void ast_libera(AstNo *no) {
     while (no) {
         AstNo *proximo = no->proximo;
