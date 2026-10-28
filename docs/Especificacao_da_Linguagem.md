@@ -966,7 +966,6 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
 | 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
-| 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
 | 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
 | 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
 | 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
