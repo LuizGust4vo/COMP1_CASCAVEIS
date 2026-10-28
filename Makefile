@@ -71,9 +71,9 @@ test-invalidos: build
 	@$(run_tests_invalidos)
 	@echo "fim dos testes invalidos"
 
-# compila e roda os testes do modulo da AST
-test-ast: $(ast_src) $(ast_header) $(ast_test_src)
-	$(cc) -Wall -o $(ast_target) $(ast_src) $(ast_test_src)
+# compila e roda os testes do modulo da AST e da integracao com o parser
+test-ast: build $(ast_test_src)
+	$(cc) -Wall -o $(ast_target) $(lex_out) $(parser_out) $(ast_src) $(ast_test_src)
 	@echo "--- iniciando testes da AST ---"
 	@$(ast_exec)
 

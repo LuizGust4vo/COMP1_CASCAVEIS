@@ -966,5 +966,6 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
 | 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
 | 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
+| 1.6 | 28/10/2026 | [Seu Nome] | Equipe | Ajuste da regra sintática de retorno vazio (`return;`) para funções `void` (Issue #17) |
 
 ---

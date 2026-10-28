@@ -59,10 +59,6 @@ int construcoes_sem_ast = 0;
 %token <linha> ASSIGN LT GT PLUS MINUS TIMES DIVIDE
 %token <linha> LBRACE RBRACE LPAREN RPAREN COMMA SEMI
 
-/* Se ocorrer erro sintatico no meio da analise, libera textos e nos da pilha */
-%destructor { free($$.texto); } <texto>
-%destructor { ast_libera($$); } <no>
-
 %type <tipo_dado> tipo tipo_retorno
 %type <no> programa funcao declaracao_funcao definicao_funcao
 %type <no> parametros_opcionais parametros parametro
