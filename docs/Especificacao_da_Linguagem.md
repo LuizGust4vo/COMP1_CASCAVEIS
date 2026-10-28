@@ -970,7 +970,5 @@ Os arquivos presentes em `tests/invalidos/` representam entradas que não devem 
 | 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
 | 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
 | 1.9 | 20/10/2026 | Ana Caroline | Luiz Almeida | Definição da execução somente das análises léxica e sintática para os testes da fase |
-| 2.0 | 27/10/2026 | Felipe | - | Define a AST e implementa seus primeiros nós (Issue #16) |
-| 2.1 | 28/10/2026 | Gabriel Goldenberg | - | Integrar Flex e Bison para construir a AST, ajuste da regra sintática de retorno vazio (`return;`) para funções `void` (Issue #17) |
 
 ---
