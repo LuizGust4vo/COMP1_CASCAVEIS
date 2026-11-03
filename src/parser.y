@@ -1,11 +1,6 @@
-/*
- * parser.y - gramatica do subconjunto de C suportado pelo compilador.
- * Implementa as regras sintaticas definidas em docs/Especificacao_da_Linguagem.md
- * e constroi a arvore sintatica abstrata (AST) inicial.
- */
-
 %code requires {
 #include "ast.h"
+#include "tabela_simbolos.h"
 
 typedef struct {
     char *texto;
@@ -27,6 +22,7 @@ typedef struct {
 #include <stdio.h>
 #include <stdlib.h>
 #include "ast.h"
+#include "tabela_simbolos.h"
 
 int yylex(void);
 extern int yylineno;
@@ -34,10 +30,18 @@ void yyerror(const char *s);
 
 AstNo *raiz_ast = NULL;
 int construcoes_sem_ast = 0;
+
+static int conta_lista(const AstNo *lista) {
+    int n = 0;
+    for (; lista; lista = lista->proximo) {
+        n++;
+    }
+    return n;
+}
 %}
 
 %define parse.error verbose
-/* Falha na geracao se surgirem conflitos nao resolvidos na gramatica. */
+%initial-action { ts_inicia(); }
 %expect 0
 
 %union {
@@ -47,6 +51,7 @@ int construcoes_sem_ast = 0;
     TokenTexto texto;
     AstTipoDado tipo_dado;
     AstNo *no;
+    Simbolo *simbolo;
 }
 
 %token <linha> INT FLOAT CHAR VOID
@@ -62,11 +67,10 @@ int construcoes_sem_ast = 0;
 %type <tipo_dado> tipo tipo_retorno
 %type <no> programa funcao declaracao_funcao definicao_funcao
 %type <no> parametros_opcionais parametros parametro
-%type <no> bloco comandos comando declaracao atribuicao
+%type <no> bloco bloco_sem_escopo comandos comando declaracao atribuicao
 %type <no> condicional repeticao retorno chamada_funcao
 %type <no> argumentos_opcionais argumentos expressao
 
-/* precedencia: da menor para a maior, conforme secao 4.5 da especificacao */
 %left OR
 %left AND
 %left EQ NE
@@ -113,14 +117,26 @@ declaracao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN SEMI
         {
             $$ = ast_funcao($1, $2.texto, $4, NULL, $2.linha);
+            $$->simbolo = ts_insere_funcao($2.texto, $1, conta_lista($4), 0, $2.linha);
             free($2.texto);
         }
     ;
 
 definicao_funcao
-    : tipo_retorno ID LPAREN parametros_opcionais RPAREN bloco
+    : tipo_retorno ID LPAREN parametros_opcionais RPAREN
         {
-            $$ = ast_funcao($1, $2.texto, $4, $6, $2.linha);
+            Simbolo *f = ts_insere_funcao($2.texto, $1, conta_lista($4), 1, $2.linha);
+            ts_abre_escopo();
+            for (AstNo *p = $4; p; p = p->proximo) {
+                p->simbolo = ts_insere(p->texto, p->tipo_dado, SIM_PARAMETRO, p->linha);
+            }
+            $<simbolo>$ = f;
+        }
+      bloco_sem_escopo
+        {
+            $$ = ast_funcao($1, $2.texto, $4, $7, $2.linha);
+            $$->simbolo = $<simbolo>6;
+            ts_fecha_escopo();
             free($2.texto);
         }
     ;
@@ -148,6 +164,14 @@ parametro
     ;
 
 bloco
+    : LBRACE { ts_abre_escopo(); } comandos RBRACE
+        {
+            $$ = ast_bloco($3, $1);
+            ts_fecha_escopo();
+        }
+    ;
+
+bloco_sem_escopo
     : LBRACE comandos RBRACE
         { $$ = ast_bloco($2, $1); }
     ;
@@ -178,11 +202,13 @@ declaracao
     : tipo ID SEMI
         {
             $$ = ast_declaracao($1, $2.texto, NULL, $2.linha);
+            $$->simbolo = ts_insere($2.texto, $1, SIM_VARIAVEL, $2.linha);
             free($2.texto);
         }
     | tipo ID ASSIGN expressao SEMI
         {
             $$ = ast_declaracao($1, $2.texto, $4, $2.linha);
+            $$->simbolo = ts_insere($2.texto, $1, SIM_VARIAVEL, $2.linha);
             free($2.texto);
         }
     ;
@@ -191,6 +217,7 @@ atribuicao
     : ID ASSIGN expressao SEMI
         {
             $$ = ast_atribuicao($1.texto, $3, $1.linha);
+            $$->simbolo = ts_busca_visivel($1.texto);
             free($1.texto);
         }
     ;
@@ -210,11 +237,12 @@ repeticao
             ast_libera($5);
             $$ = NULL;
         }
-    | FOR LPAREN inicializacao_for SEMI expressao SEMI atualizacao_for RPAREN bloco
+    | FOR LPAREN { ts_abre_escopo(); } inicializacao_for SEMI expressao SEMI atualizacao_for RPAREN bloco_sem_escopo
         {
+            ts_fecha_escopo();
             construcoes_sem_ast++;
-            ast_libera($5);
-            ast_libera($9);
+            ast_libera($6);
+            ast_libera($10);
             $$ = NULL;
         }
     ;
@@ -222,6 +250,7 @@ repeticao
 inicializacao_for
     : tipo ID ASSIGN expressao
         {
+            ts_insere($2.texto, $1, SIM_VARIAVEL, $2.linha);
             free($2.texto);
             ast_libera($4);
         }
@@ -251,6 +280,7 @@ chamada_funcao
     : ID LPAREN argumentos_opcionais RPAREN
         {
             $$ = ast_chamada($1.texto, $3, $1.linha);
+            $$->simbolo = ts_busca_visivel($1.texto);
             free($1.texto);
         }
     ;
@@ -287,6 +317,7 @@ expressao
     | ID
         {
             $$ = ast_id($1.texto, $1.linha);
+            $$->simbolo = ts_busca_visivel($1.texto);
             free($1.texto);
         }
     | chamada_funcao

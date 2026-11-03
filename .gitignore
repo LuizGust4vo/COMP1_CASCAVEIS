@@ -8,3 +8,5 @@ lexer_test.exe
 ast_test
 ast_test.exe
 ast_saida.tmp
+simbolos_test
+simbolos_test.exe
