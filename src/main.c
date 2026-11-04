@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ast.h"
 #include "tabela_simbolos.h"
+#include "semantico.h"
 #include "parser.tab.h"
 
 extern FILE *yyin;
@@ -12,6 +13,7 @@ extern int construcoes_sem_ast;
 int main(int argc, char **argv) {
     int mostrar_ast = 0;
     int mostrar_simbolos = 0;
+    int somente_sintatico = 0;
     const char *arquivo = NULL;
 
     for (int i = 1; i < argc; i++) {
@@ -20,6 +22,7 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "--simbolos") == 0) {
             mostrar_simbolos = 1;
         } else if (strcmp(argv[i], "--sintatico") == 0) {
+            somente_sintatico = 1;
         } else {
             arquivo = argv[i];
         }
@@ -39,7 +42,12 @@ int main(int argc, char **argv) {
         fclose(yyin);
     }
 
-    if (erro_sintatico == 0 && erros_lexicos == 0) {
+    int erros_semanticos = 0;
+    if (erro_sintatico == 0 && erros_lexicos == 0 && !somente_sintatico) {
+        erros_semanticos = semantico_analisa(raiz_ast);
+    }
+
+    if (erro_sintatico == 0 && erros_lexicos == 0 && erros_semanticos == 0) {
         if (mostrar_ast && raiz_ast) {
             ast_imprime(stdout, raiz_ast);
         }
@@ -47,7 +55,7 @@ int main(int argc, char **argv) {
             ts_imprime(stdout);
         }
         if (construcoes_sem_ast > 0) {
-            printf("Nota: %d construcao(oes) de repeticao (while/for) reconhecida(s) sintaticamente, mas ainda sem representacao na AST inicial.\n",
+            printf("Nota: %d construcao(oes) de repeticao (while/for) reconhecida(s) sintaticamente, mas ainda sem representacao na AST inicial nem cobertura semantica.\n",
                    construcoes_sem_ast);
         }
         printf("Analise concluida: programa aceito.\n");
@@ -60,6 +68,10 @@ int main(int argc, char **argv) {
     ast_libera(raiz_ast);
     raiz_ast = NULL;
     ts_libera();
-    printf("Analise concluida: programa rejeitado.\n");
+    if (erros_semanticos > 0) {
+        printf("Analise concluida: programa rejeitado (%d erro(s) semantico(s)).\n", erros_semanticos);
+    } else {
+        printf("Analise concluida: programa rejeitado.\n");
+    }
     return 1;
 }
