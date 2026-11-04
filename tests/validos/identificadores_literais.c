@@ -7,7 +7,7 @@ int principal() {
     int identificador123 = 10;
     int _aux = 20;
 
-    processar("Hello World");
+    printf("Hello World");
 
     return numero;
 }
