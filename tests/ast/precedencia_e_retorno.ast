@@ -1,0 +1,35 @@
+PROGRAMA
+  FUNCAO int classifica (prototipo)
+    PARAMETRO int n
+  FUNCAO void encerra_cedo
+    PARAMETRO int x
+    BLOCO
+      IF
+        BINARIO ==
+          ID x
+          NUM_INT 0
+        BLOCO
+          RETORNO
+      RETORNO
+  FUNCAO int classifica
+    PARAMETRO int n
+    BLOCO
+      DECLARACAO int calc
+        BINARIO +
+          NUM_INT 2
+          BINARIO *
+            NUM_INT 3
+            NUM_INT 4
+      IF
+        BINARIO >
+          ID n
+          NUM_INT 0
+        BLOCO
+          RETORNO
+            ID calc
+        ELSE
+        BLOCO
+          RETORNO
+            UNARIO -
+              NUM_INT 1
+              
