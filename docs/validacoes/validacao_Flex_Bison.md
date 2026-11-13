@@ -1,10 +1,14 @@
-# Issue #7 — Validação da integração Flex–Bison
+# Validação da Integração Flex–Bison
+
+> Este documento registra a validação realizada durante a Issue #7,
+> referente à implementação inicial do analisador sintático na Sprint 2 (Issue 2.2),
+> com foco na integração entre Flex e Bison.
 
 ## Escopo e alterações
 
 Esta entrega cobre a integração solicitada no terceiro item da
 [issue #7](https://github.com/LuizGust4vo/COMP1_CASCAVEIS/issues/7).
-A gramática está descrita em [validação da gramática](validacao_issue_7_gramatica.md).
+A gramática está descrita em [validação da gramática](validacao_Gramatica_Parser.md).
 
 O fluxo já existia na `main` no commit `5dfd681`. Em `src/main.c`, a declaração
 manual de `yyparse()` foi substituída pela inclusão de `parser.tab.h`, para
@@ -56,7 +60,7 @@ echo $?
 Ambas produziram a mesma saída de aceitação e retorno 0.
 
 | Verificação | Resultado observado |
-|---|---|
+| ----------- | ------------------- |
 | Caminho inexistente | Erro de abertura e retorno 1 |
 | `tests/invalidos/caracteres_nao_reconhecidos.c` | Erros léxicos, rejeição e retorno 1 |
 | `tests/invalidos/string_nao_terminada.c` | String não terminada, rejeição e retorno 1 |

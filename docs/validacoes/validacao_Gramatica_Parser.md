@@ -1,4 +1,9 @@
-# Issue #7 — Validação da gramática inicial
+# Validação da Gramática do Parser
+
+> Este documento registra a validação realizada durante a Issue #7,
+> referente à implementação inicial do analisador sintático na Sprint 2 (Issue 2.2),
+> com foco na gramática e nas regras do parser.
+
 
 ## Escopo e resultado
 
@@ -10,14 +15,14 @@ construções à linguagem.
 
 Esta entrega cobre os dois primeiros itens da
 [issue #7](https://github.com/LuizGust4vo/COMP1_CASCAVEIS/issues/7).
-A integração está registrada em [validação da integração](validacao_issue_7_integracao.md).
+A integração está registrada em [validação da integração](validacao_Flex_Bison.md).
 
 ## Tokens
 
 Os 34 tokens declarados por `%token` correspondem aos retornados pelo lexer:
 
 | Categoria | Tokens |
-|---|---|
+| --------- | ------ |
 | Tipos | `INT FLOAT CHAR VOID` |
 | Controle | `IF ELSE WHILE FOR RETURN` |
 | Identificadores e literais | `ID NUM_INT NUM_FLOAT CHAR_LIT STRING_LIT` |
@@ -37,7 +42,7 @@ A ordem crescente é `OR`, `AND`, `EQ NE`, `LT GT LE GE`, `PLUS MINUS`,
 
 Foram conferidas as produções de programa, declaração/definição de função,
 tipos, parâmetros, blocos, comandos, declaração de variável, atribuição e
-expressão contra a seção 4 da [especificação](Especificacao_da_Linguagem.md).
+expressão contra a seção 4 da [especificação](../especificacao_da_Linguagem.md).
 O programa exige ao menos uma função; variáveis são declaradas dentro de
 funções. As regras de controle já existentes foram preservadas.
 
@@ -71,7 +76,7 @@ echo $?
 ```
 
 | Entrada | Retorno observado |
-|---|---|
+| ------- | ----------------- |
 | `void f(){}` | 0 — aceito |
 | `int soma(int a, int b);` | 0 — aceito |
 | `int f(){ int x; x = 2 + 3 * 4; return x; }` | 0 — aceito |

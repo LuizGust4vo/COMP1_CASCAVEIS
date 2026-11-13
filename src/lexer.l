@@ -1,7 +1,7 @@
 /*
- * lexer.l - analisador lexico do subconjunto de C suportado pelo compilador.
- * Reconhece os tokens definidos em docs/Especificacao_da_Linguagem.md (secao 3)
- * e entrega seus valores semanticos e linha ao parser (Bison).
+ * lexer.l - Analisador léxico do subconjunto da linguagem C suportado pelo compilador.
+ * Reconhece os tokens definidos em docs/especificacao_da_Linguagem.md (seção 3)
+ * e entrega seus valores semânticos e o número da linha ao parser (Bison).
  */
 
 %option noyywrap
