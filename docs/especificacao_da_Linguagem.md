@@ -1521,17 +1521,17 @@ O erro é apontado na linha 3 porque o Parser só percebe a falta do `;` ao ler 
 
 ## 9. Histórico de Versões
 
-| Versão | Data | Autor(es) | Revisor(es) | Descrição |
-|--------|------|-----------|-------------|-----------|
-| 1.0 | 23/08/2026 | Gabriel Goldenberg | - | Criação do documento |
-| 1.1 | 28/08/2026 | Pedro Araujo | Luiz Almeida | Adicionou escopo da linguagem |
-| 1.2 | 29/08/2026 | Ana Caroline | - | Desenvolvimento dos exemplos de tradução C → Python |
-| 1.3 | 29/08/2026 | Gabriel Goldenberg | Luiz Almeida | Desenvolvimento das construções não suportadas |
-| 1.4 | 29/08/2026 | Luiz Almeida | - | Desenvolvimento das regras sintáticas e organização do documento |
-| 1.5 | 30/08/2026 | Felipe | - | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
-| 1.6 | 17/10/2026 | Gabriel Goldenberg | - | Registro das combinações de tipos e das regras de uso de strings |
-| 1.7 | 18/10/2026 | Pedro Araujo | - | Registro das regras de declaração, nomes repetidos e escopo |
-| 1.8 | 20/10/2026 | Luiz Almeida | - | Definição do contrato entre os módulos da Sprint 3 |
-| 1.9 | 20/10/2026 | Ana Caroline | Luiz Almeida | Definição da execução somente das análises léxica e sintática para os testes da fase |
+| Versão | Data | Autor(es) | Descrição |
+| ------ | ---- | --------- | -------- |
+| 1.0 | 23/08/2026 | Gabriel Goldenberg | Criação do documento |
+| 1.1 | 28/08/2026 | Pedro Araujo | Adicionou escopo da linguagem |
+| 1.2 | 29/08/2026 | Ana Caroline | Desenvolvimento dos exemplos de tradução C → Python |
+| 1.3 | 29/08/2026 | Gabriel Goldenberg | Desenvolvimento das construções não suportadas |
+| 1.4 | 29/08/2026 | Luiz Almeida | Desenvolvimento das regras sintáticas e organização do documento |
+| 1.5 | 30/08/2026 | Felipe | Adição da especificação léxica, definição dos tokens e verificação de viabilidade no Flex/Bison |
+| 1.6 | 17/10/2026 | Gabriel Goldenberg | Registro das combinações de tipos e das regras de uso de strings |
+| 1.7 | 18/10/2026 | Pedro Araujo | Registro das regras de declaração, nomes repetidos e escopo |
+| 1.8 | 20/10/2026 | Luiz Almeida | Definição do contrato entre os módulos da Sprint 3 |
+| 1.9 | 20/10/2026 | Ana Caroline | Definição da execução somente das análises léxica e sintática para os testes da fase |
 
 ---
