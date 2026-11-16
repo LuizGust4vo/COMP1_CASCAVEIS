@@ -43,6 +43,61 @@
 
 </center>
 
+## Como Executar e Testar o Projeto
+
+Esta seção apresenta os comandos necessários para compilar o projeto, executar a suíte de testes e reproduzir exemplos do fluxo do compilador.
+
+### Compilação
+
+Para limpar os arquivos gerados e compilar o projeto:
+
+```bash
+make clean
+make build
+```
+
+### Testes
+
+Para executar toda a suíte de testes:
+
+```bash
+make test
+```
+
+Os testes contemplam análise sintática, AST, tabela de símbolos e verificações semânticas iniciais.
+
+### Demonstração do fluxo integrado
+
+Para executar um programa válido exibindo a AST e a tabela de símbolos:
+
+```bash
+./lexer_test --ast --simbolos tests/semanticos/validos/declara_e_retorna.c
+```
+
+O programa deve ser aceito e apresentar a árvore sintática abstrata e os símbolos cadastrados.
+
+### Casos de erro
+
+* Variável não declarada:
+
+```bash
+./lexer_test tests/semanticos/invalidos/variavel_nao_declarada.c
+```
+
+* Uso de variável fora do escopo:
+
+```bash
+./lexer_test tests/semanticos/invalidos/uso_fora_do_bloco.c
+```
+
+* Incompatibilidade de tipos:
+
+```bash
+./lexer_test tests/semanticos/invalidos/float_para_int.c
+```
+
+Nos três casos, o programa deve ser rejeitado com a mensagem de erro semântico correspondente.
+
 ## Licença ©
 
 Este projeto está sob licença [MIT](LICENSE) ©
