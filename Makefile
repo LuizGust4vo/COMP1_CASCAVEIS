@@ -60,7 +60,7 @@ build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $
 run: build
 	@$(exec)
 
-test: test-validos test-invalidos test-ast test-simbolos test-semanticos
+test: test-validos test-invalidos test-ast test-simbolos test-semanticos test-consolidado
 
 test-validos: build
 	@echo "--- iniciando testes validos ---"
@@ -96,6 +96,11 @@ test-semanticos: build
 	done; \
 	if [ $$falhas -ne 0 ]; then echo "Testes semanticos: $$falhas falha(s)"; exit 1; fi; \
 	echo "Testes semanticos: todos passaram"
+
+# testes consolidados: compara os resultados obtidos com os esperados
+test-consolidado: build
+	@echo "--- iniciando executor consolidado ---"
+	@python3 tests/executar_testes.py
 
 clean:
 	@$(rm)
