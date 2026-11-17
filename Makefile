@@ -25,9 +25,9 @@ ifeq ($(OS),Windows_NT)
 	ast_exec = .\\$(ast_target)
 	ts_target = simbolos_test.exe
 	ts_exec = .\\$(ts_target)
-	rm = powershell -Command "Remove-Item -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target), $(ts_target), ast_saida.tmp"
-	run_tests_validos = powershell -Command 'Get-ChildItem $(test_dir_validos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando valido:" $$_.Name -ForegroundColor Green; Get-Content $$_.FullName | $(exec) }'
-	run_tests_invalidos = powershell -Command 'Get-ChildItem $(test_dir_invalidos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando invalido:" $$_.Name -ForegroundColor Red; Get-Content $$_.FullName | $(exec) }'
+	rm = powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target), $(ts_target), ast_saida.tmp; exit 0"
+	run_tests_validos = powershell -Command 'Get-ChildItem $(test_dir_validos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando valido:" $$_.Name -ForegroundColor Green; Get-Content $$_.FullName | $(exec) --sintatico }'
+	run_tests_invalidos = powershell -Command 'Get-ChildItem $(test_dir_invalidos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando invalido:" $$_.Name -ForegroundColor Red; Get-Content $$_.FullName | $(exec) --sintatico }'
 else
 	target = lexer_test
 	exec = ./$(target)
@@ -39,13 +39,13 @@ else
 	run_tests_validos = for file in $(test_dir_validos)/*.c; do \
 		if [ -f "$$file" ]; then \
 			echo "\033[1;32mtestando valido: $$file\033[0m"; \
-			$(exec) < "$$file" || true; \
+			$(exec) --sintatico < "$$file" || true; \
 		fi \
 	done
 	run_tests_invalidos = for file in $(test_dir_invalidos)/*.c; do \
 		if [ -f "$$file" ]; then \
 			echo "\033[1;31mtestando invalido: $$file\033[0m"; \
-			$(exec) < "$$file" || true; \
+			$(exec) --sintatico < "$$file" || true; \
 		fi \
 	done
 endif

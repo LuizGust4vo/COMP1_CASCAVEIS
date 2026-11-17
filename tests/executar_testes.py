@@ -1,9 +1,17 @@
 from pathlib import Path
 import subprocess
 import sys
+import os
 
 RAIZ = Path(__file__).resolve().parent.parent
-EXECUTAVEL = RAIZ / "lexer_test"
+NOME_BIN = "lexer_test.exe" if os.name == "nt" else "lexer_test"
+EXECUTAVEL = RAIZ / NOME_BIN
+
+# fallback caso compile sem .exe no WSL/Git Bash ou com .exe
+if not EXECUTAVEL.exists() and (RAIZ / "lexer_test.exe").exists():
+    EXECUTAVEL = RAIZ / "lexer_test.exe"
+elif not EXECUTAVEL.exists() and (RAIZ / "lexer_test").exists():
+    EXECUTAVEL = RAIZ / "lexer_test"
 
 
 def executar(arquivo, esperado, sintatico=False):
