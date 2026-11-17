@@ -47,6 +47,8 @@
 
 Esta seção apresenta os comandos necessários para compilar o projeto, executar a suíte de testes e reproduzir exemplos do fluxo do compilador.
 
+> **Ambiente de desenvolvimento:** para instruções de instalação e configuração das dependências no Linux ou Windows, consulte o [Guia de Configuração do Ambiente de Desenvolvimento](docs/guias/Guia%20-%20Configuração%20do%20ambiente%20de%20desenvolvimento.md). No Windows, o guia recomenda a utilização do WSL para facilitar o uso das ferramentas Flex e Bison.
+
 ### Compilação
 
 Para limpar os arquivos gerados e compilar o projeto:
