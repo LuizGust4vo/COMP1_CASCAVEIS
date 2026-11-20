@@ -1,7 +1,7 @@
-/*
- * teste_ast.c - testes do modulo da AST (src/ast.c) e da construcao da AST
- * pelo parser integrado ao lexer (Issue 3.3).
- */
+/* 
+teste_ast.c - testes do modulo da AST (src/ast.c) 
+e da construcao da AST pelo parser integrado ao lexer.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ static int falhas = 0;
 #define VERIFICA(cond) do { if (!(cond)) { \
     fprintf(stderr, "FALHA %s:%d: %s\n", __FILE__, __LINE__, #cond); falhas++; } } while (0)
 
-/* arvore de 2 + 3 */
+/* Árvore de 2 + 3 */
 static void testa_soma_2_mais_3(void) {
     AstNo *e = ast_binario(OP_SOMA, ast_num_int(2, 1), ast_num_int(3, 1), 1);
     VERIFICA(e->tipo == AST_BINARIO && e->op == OP_SOMA && e->linha == 1);
@@ -146,10 +146,10 @@ static void testa_atribuicao_e_retorno(void) {
     VERIFICA(ast_nos_alocados() == 0);
 }
 
-/* arquivo no diretorio atual: tmpfile() pode falhar no Windows (MinGW grava em C:\\) */
+/* Arquivo no diretório atual: tmpfile() pode falhar no Windows (MinGW grava em C:\\) */
 #define ARQUIVO_SAIDA "ast_saida.tmp"
 
-/* imprime a arvore em um arquivo temporario e devolve o conteudo (liberar com free) */
+/* Imprime a árvore em um arquivo temporário e devolve o conteúdo (libera com free) */
 static char *imprime_em_texto(const AstNo *no) {
     FILE *tmp = fopen(ARQUIVO_SAIDA, "w+");
     if (!tmp) {
@@ -237,8 +237,7 @@ static void testa_impressao_opcionais(void) {
     VERIFICA(ast_nos_alocados() == 0);
 }
 
-/* --- Testes de integracao Flex + Bison -> AST (Issue 3.3) --- */
-
+/* Testes de integracao Flex + Bison -> AST */
 static int analisa_string(const char *codigo) {
     yylineno = 1;
     erros_lexicos = 0;
@@ -260,6 +259,7 @@ static void testa_parser_valores_lexicos(void) {
         "}\n";
     int rc = analisa_string(codigo);
     VERIFICA(rc == 0 && erros_lexicos == 0 && raiz_ast != NULL);
+    
     AstNo *fn = raiz_ast->filho[0];
     VERIFICA(fn->tipo == AST_FUNCAO && strcmp(fn->texto, "f") == 0 && fn->linha == 1);
     VERIFICA(fn->filho[0]->tipo == AST_PARAMETRO && strcmp(fn->filho[0]->texto, "p") == 0);
@@ -340,7 +340,7 @@ static void testa_parser_arvore_esperada(void) {
         buf_esp[j] = '\0';
         fclose(esp);
 
-        /* remove \r de obtido caso esteja no Windows */
+        /* Remove \r de obtido caso esteja no Windows */
         char buf_obt[4096];
         size_t k = 0;
         for (size_t i = 0; obtido[i] != '\0' && k + 1 < sizeof(buf_obt); i++) {
@@ -361,7 +361,7 @@ static void testa_parser_arvore_esperada(void) {
     VERIFICA(ast_nos_alocados() == 0);
 }
 
-static void testa_parser_repeticao_sem_ast(void) {
+static void testa_parser_repeticao_com_ast(void) {
     const char *codigo =
         "int laco(int n) {\n"
         "    int i = 0;\n"
@@ -369,11 +369,15 @@ static void testa_parser_repeticao_sem_ast(void) {
         "    for (int j = 0; j < n; j = j + 1) { i = i + j; }\n"
         "    return i;\n"
         "}\n";
+
     int rc = analisa_string(codigo);
+    
     VERIFICA(rc == 0 && erros_lexicos == 0);
-    VERIFICA(construcoes_sem_ast == 2);
+    VERIFICA(construcoes_sem_ast == 0);
+    
     ast_libera(raiz_ast);
     raiz_ast = NULL;
+
     VERIFICA(ast_nos_alocados() == 0);
 }
 
@@ -387,15 +391,16 @@ int main(void) {
     testa_funcao_classifica();
     testa_opcionais_nulos();
     testa_atribuicao_e_retorno();
+
     testa_impressao_soma();
     testa_impressao_classifica();
     testa_impressao_opcionais();
 
-    /* Testes de integracao Flex + Bison -> AST (Issue 3.3) */
+    /* Testes de integracao Flex + Bison -> AST */
     testa_parser_valores_lexicos();
     testa_parser_precedencia_associatividade();
     testa_parser_arvore_esperada();
-    testa_parser_repeticao_sem_ast();
+    testa_parser_repeticao_com_ast();
 
     if (falhas) {
         printf("Testes da AST: %d falha(s)\n", falhas);

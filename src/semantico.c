@@ -188,6 +188,24 @@ static void visita(const AstNo *n) {
         break;
     }
 
+    case AST_WHILE: {
+        TipoSem c = tipo_expr(n->filho[0]);
+        if (c != T_ERRO && !numerico(c))
+            erro(n->linha, "condicao do while deve ser numerica", NULL);
+        visita(n->filho[1]);
+        break;
+    }
+
+    case AST_FOR: {
+        visita(n->filho[0]);
+        TipoSem c = tipo_expr(n->filho[1]);
+        if (c != T_ERRO && !numerico(c))
+            erro(n->linha, "condicao do for deve ser numerica", NULL);
+        visita(n->filho[3]);
+        visita(n->filho[2]);
+        break;
+    }
+
     case AST_CHAMADA: /* chamada usada como comando, ex.: printf("oi"); */
         tipo_expr(n);
         break;
