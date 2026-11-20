@@ -119,6 +119,7 @@ declaracao_funcao
         {
             $$ = ast_funcao($1, $2.texto, $4, NULL, $2.linha);
             $$->simbolo = ts_insere_funcao($2.texto, $1, conta_lista($4), 0, $2.linha);
+            ts_define_tipos_parametros($$->simbolo, $4);
             free($2.texto);
         }
     ;
@@ -127,6 +128,7 @@ definicao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN
         {
             Simbolo *f = ts_insere_funcao($2.texto, $1, conta_lista($4), 1, $2.linha);
+            ts_define_tipos_parametros(f, $4);
             ts_abre_escopo();
             for (AstNo *p = $4; p; p = p->proximo) {
                 p->simbolo = ts_insere(p->texto, p->tipo_dado, SIM_PARAMETRO, p->linha);

@@ -1,6 +1,6 @@
 /* 
-teste_ast.c - testes do modulo da AST (src/ast.c) 
-e da construcao da AST pelo parser integrado ao lexer.
+teste_ast.c - testes do módulo da AST (src/ast.c) 
+e da construção da AST pelo parser integrado ao lexer.
 */
 
 #include <stdio.h>
