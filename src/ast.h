@@ -7,7 +7,8 @@ struct Simbolo;
 
 typedef enum {
     AST_PROGRAMA, AST_FUNCAO, AST_PARAMETRO, AST_BLOCO,
-    AST_DECLARACAO, AST_ATRIBUICAO, AST_RETORNO, AST_IF,
+    AST_DECLARACAO, AST_ATRIBUICAO, AST_RETORNO, AST_IF, 
+    AST_WHILE, AST_FOR,
     AST_CHAMADA, AST_BINARIO, AST_UNARIO,
     AST_NUM_INT, AST_NUM_FLOAT, AST_CHAR_LIT, AST_STRING_LIT, AST_ID
 } AstTipoNo;
@@ -22,15 +23,15 @@ typedef enum {
 } AstOperador;
 
 typedef struct AstNo {
-    AstTipoNo tipo;
-    int linha;
-    AstTipoDado tipo_dado;
     AstOperador op;
+    AstTipoNo tipo;
+    AstTipoDado tipo_dado;
     char *texto;
-    int valor_int;
     double valor_float;
+    int linha;
+    int valor_int;
     struct Simbolo *simbolo;
-    struct AstNo *filho[3];
+    struct AstNo *filho[4];
     struct AstNo *proximo;
 } AstNo;
 
@@ -42,6 +43,8 @@ AstNo *ast_declaracao(AstTipoDado tipo, const char *nome, AstNo *inicializacao, 
 AstNo *ast_atribuicao(const char *nome, AstNo *valor, int linha);
 AstNo *ast_retorno(AstNo *valor, int linha);
 AstNo *ast_if(AstNo *condicao, AstNo *entao, AstNo *senao, int linha);
+AstNo *ast_while(AstNo *condicao, AstNo *corpo, int linha);
+AstNo *ast_for(AstNo *inicializacao, AstNo *condicao, AstNo *atualizacao, AstNo *corpo, int linha);
 AstNo *ast_chamada(const char *nome, AstNo *argumentos, int linha);
 AstNo *ast_binario(AstOperador op, AstNo *esquerda, AstNo *direita, int linha);
 AstNo *ast_unario(AstOperador op, AstNo *operando, int linha);
@@ -50,11 +53,9 @@ AstNo *ast_num_float(double valor, int linha);
 AstNo *ast_char_lit(const char *texto, int linha);
 AstNo *ast_string_lit(const char *texto, int linha);
 AstNo *ast_id(const char *nome, int linha);
-
 AstNo *ast_lista_anexa(AstNo *lista, AstNo *item);
 
 void ast_imprime(FILE *saida, const AstNo *no);
-
 void ast_libera(AstNo *no);
 
 int ast_nos_alocados(void);

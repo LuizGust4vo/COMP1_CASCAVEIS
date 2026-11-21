@@ -310,7 +310,7 @@ static void testa_escopo_do_for(void) {
     VERIFICA(ts_problemas()->tipo == PROB_REDECLARACAO && ts_problemas()->linha == 8);
     AstNo *t_igual_i = acha_no(raiz_ast, AST_ATRIBUICAO, "t");
     VERIFICA(t_igual_i && t_igual_i->filho[0]->tipo == AST_ID && t_igual_i->filho[0]->simbolo == NULL);
-    VERIFICA(construcoes_sem_ast == 3);
+    VERIFICA(construcoes_sem_ast == 0);
     encerra_analise();
 }
 

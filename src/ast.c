@@ -90,6 +90,22 @@ AstNo *ast_if(AstNo *condicao, AstNo *entao, AstNo *senao, int linha) {
     return no;
 }
 
+AstNo *ast_while(AstNo *condicao, AstNo *corpo, int linha) {
+    AstNo *no = novo_no(AST_WHILE, linha);
+    no->filho[0] = condicao;
+    no->filho[1] = corpo;
+    return no;
+}
+
+AstNo *ast_for(AstNo *inicializacao, AstNo *condicao, AstNo *atualizacao, AstNo *corpo, int linha) {
+    AstNo *no = novo_no(AST_FOR, linha);
+    no->filho[0] = inicializacao;
+    no->filho[1] = condicao;
+    no->filho[2] = atualizacao;
+    no->filho[3] = corpo;
+    return no;
+}
+
 AstNo *ast_chamada(const char *nome, AstNo *argumentos, int linha) {
     AstNo *no = novo_no(AST_CHAMADA, linha);
     no->texto = copia_texto(nome);
@@ -192,6 +208,12 @@ static void imprime_no(FILE *saida, const AstNo *no, int nivel) {
         case AST_IF:
             fprintf(saida, "IF\n");
             break;
+        case AST_WHILE:
+            fprintf(saida, "WHILE\n");
+            break;
+        case AST_FOR:
+            fprintf(saida, "FOR\n");
+            break;
         case AST_CHAMADA:
             fprintf(saida, "CHAMADA %s\n", no->texto);
             break;
@@ -218,7 +240,7 @@ static void imprime_no(FILE *saida, const AstNo *no, int nivel) {
             break;
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         if (!no->filho[i]) {
             continue;
         }
@@ -239,7 +261,7 @@ void ast_imprime(FILE *saida, const AstNo *no) {
 void ast_libera(AstNo *no) {
     while (no) {
         AstNo *proximo = no->proximo;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             ast_libera(no->filho[i]);
         }
         free(no->texto);
