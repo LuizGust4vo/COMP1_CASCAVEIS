@@ -30,7 +30,8 @@ typedef enum
 {
     PROB_REDECLARACAO,
     PROB_OCULTA,
-    PROB_FUNCAO_REDEFINIDA
+    PROB_FUNCAO_REDEFINIDA,
+    PROB_ASSINATURA_INCOMPATIVEL
 } ProblemaTipo;
 
 typedef struct Problema
@@ -51,6 +52,8 @@ int ts_escopo_atual(void);
 Simbolo *ts_insere(const char *nome, AstTipoDado tipo, SimCategoria categoria, int linha);
 Simbolo *ts_insere_funcao(const char *nome, AstTipoDado retorno, int num_parametros, int definicao, int linha);
 void ts_define_tipos_parametros(Simbolo *funcao, const AstNo *parametros);
+int ts_assinatura_compativel(const Simbolo *funcao, AstTipoDado retorno, int num_parametros, const AstNo *parametros);
+int ts_valida_assinatura_funcao(const char *nome, AstTipoDado retorno, int num_parametros, const AstNo *parametros, int linha);
 
 Simbolo *ts_busca_escopo_atual(const char *nome);
 Simbolo *ts_busca_funcao_atual(const char *nome);

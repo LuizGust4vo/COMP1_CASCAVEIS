@@ -117,6 +117,7 @@ tipo_retorno
 declaracao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN SEMI
         {
+            ts_valida_assinatura_funcao($2.texto, $1, conta_lista($4), $4, $2.linha);
             $$ = ast_funcao($1, $2.texto, $4, NULL, $2.linha);
             $$->simbolo = ts_insere_funcao($2.texto, $1, conta_lista($4), 0, $2.linha);
             ts_define_tipos_parametros($$->simbolo, $4);
@@ -127,6 +128,7 @@ declaracao_funcao
 definicao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN
         {
+            ts_valida_assinatura_funcao( $2.texto, $1, conta_lista($4), $4, $2.linha);
             Simbolo *f = ts_insere_funcao($2.texto, $1, conta_lista($4), 1, $2.linha);
             ts_define_tipos_parametros(f, $4);
             ts_abre_escopo();

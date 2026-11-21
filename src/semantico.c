@@ -74,7 +74,7 @@ static int conta_argumentos(const AstNo *arg)
 static int compativel(TipoSem destino, TipoSem origem)
 {
     if (origem == T_ERRO)
-        return 1; /* erro ja reportado; evita cascata */
+        return 1; /* Erro já reportado; evita cascata */
     switch (destino)
     {
     case T_INT:
@@ -88,7 +88,7 @@ static int compativel(TipoSem destino, TipoSem origem)
     }
 }
 
-/* Calcula o tipo de uma expressao (tabela 7.1.1), reportando erros no caminho */
+/* Calcula o tipo de uma expressão (tabela 7.1.1), reportando erros no caminho */
 static TipoSem tipo_expr(const AstNo *e)
 {
     if (!e)
@@ -104,16 +104,19 @@ static TipoSem tipo_expr(const AstNo *e)
         return T_CHAR;
     case AST_STRING_LIT:
         return T_STRING;
-
     case AST_ID:
         if (!e->simbolo)
         {
-            erro(e->linha, "variavel nao declarada ou fora de escopo", e->texto);
+            erro(e->linha,
+                 "variavel nao declarada ou fora de escopo",
+                 e->texto);
             return T_ERRO;
         }
         if (eh_funcao(e->simbolo))
         {
-            erro(e->linha, "nome de funcao usado como valor", e->texto);
+            erro(e->linha,
+                 "nome de funcao usado como valor",
+                 e->texto);
             return T_ERRO;
         }
         return de_ast(e->simbolo->tipo);
@@ -125,14 +128,14 @@ static TipoSem tipo_expr(const AstNo *e)
         if (!f)
         {
             erro(e->linha,
-                "funcao nao declarada", 
-                e->texto);
+                 "funcao nao declarada",
+                 e->texto);
         }
         else if (!eh_funcao(f))
         {
-            erro(e->linha, 
-                "variavel chamada como funcao", 
-                e->texto);
+            erro(e->linha,
+                 "variavel chamada como funcao",
+                 e->texto);
             f = NULL;
         }
 
@@ -143,8 +146,8 @@ static TipoSem tipo_expr(const AstNo *e)
             if (quantidade != f->num_parametros)
             {
                 erro(e->linha,
-                    "quantidade incorreta de argumentos na chamada",
-                    e->texto);
+                     "quantidade incorreta de argumentos na chamada",
+                     e->texto);
             }
         }
 
@@ -157,9 +160,9 @@ static TipoSem tipo_expr(const AstNo *e)
             if (a->tipo == AST_STRING_LIT)
             {
                 if (f && f->categoria != SIM_FUNCAO_NATIVA)
-                    erro(a->linha, 
-                        "string literal como argumento de funcao nao nativa", 
-                        e->texto);
+                    erro(a->linha,
+                         "string literal como argumento de funcao nao nativa",
+                         e->texto);
                 continue;
             }
 
@@ -174,9 +177,9 @@ static TipoSem tipo_expr(const AstNo *e)
 
                 if (!compativel(tipo_parametro, tipo_argumento))
                 {
-                    erro(a->linha, 
-                        "tipo de argumento incompativel na chamada", 
-                        e->texto);
+                    erro(a->linha,
+                         "tipo de argumento incompativel na chamada",
+                         e->texto);
                 }
             }
         }
@@ -191,7 +194,9 @@ static TipoSem tipo_expr(const AstNo *e)
             return T_ERRO;
         if (!numerico(t))
         {
-            erro(e->linha, "incompatibilidade de tipos: operando string/void em operacao unaria", NULL);
+            erro(e->linha,
+                 "incompatibilidade de tipos: operando string/void em operacao unaria",
+                 NULL);
             return T_ERRO;
         }
         if (e->op == OP_NAO)
@@ -207,7 +212,9 @@ static TipoSem tipo_expr(const AstNo *e)
             return T_ERRO;
         if (!numerico(a) || !numerico(b))
         {
-            erro(e->linha, "incompatibilidade de tipos: operando string/void em operacao", NULL);
+            erro(e->linha,
+                 "incompatibilidade de tipos: operando string/void em operacao",
+                 NULL);
             return T_ERRO;
         }
         switch (e->op)
@@ -217,11 +224,10 @@ static TipoSem tipo_expr(const AstNo *e)
         case OP_MUL:
         case OP_DIV:
             return (a == T_FLOAT || b == T_FLOAT) ? T_FLOAT : T_INT;
-        default: /* relacionais e logicos */
+        default: /* Relacionais e lógicos */
             return T_INT;
         }
     }
-
     default:
         return T_ERRO;
     }
@@ -243,60 +249,101 @@ static void visita(const AstNo *n)
     switch (n->tipo)
     {
     case AST_PROGRAMA:
+    {
         visita_lista(n->filho[0]);
         break;
+    }
 
-    case AST_FUNCAO:
-        /* prototipo tem corpo NULL; visita(NULL) nao faz nada */
+    case AST_FUNCAO: /* Protótipo tem corpo NULL; visita(NULL) não faz nada */
+    {
         retorno_atual = de_ast(n->tipo_dado);
         visita(n->filho[1]);
         break;
+    }
 
     case AST_BLOCO:
+    {
         visita_lista(n->filho[0]);
         break;
+    }
 
     case AST_DECLARACAO:
+    {
         if (n->filho[0])
         {
             TipoSem t = tipo_expr(n->filho[0]);
             if (!compativel(de_ast(n->tipo_dado), t))
-                erro(n->linha, "inicializacao com tipo incompativel", n->texto);
+                erro(n->linha,
+                     "inicializacao com tipo incompativel",
+                     n->texto);
         }
         break;
+    }
 
     case AST_ATRIBUICAO:
     {
         TipoSem t = tipo_expr(n->filho[0]);
         if (!n->simbolo)
         {
-            erro(n->linha, "variavel nao declarada ou fora de escopo", n->texto);
+            erro(n->linha,
+                 "variavel nao declarada ou fora de escopo",
+                 n->texto);
         }
         else if (eh_funcao(n->simbolo))
         {
-            erro(n->linha, "atribuicao a nome de funcao", n->texto);
+            erro(n->linha,
+                 "atribuicao a nome de funcao",
+                 n->texto);
         }
         else if (!compativel(de_ast(n->simbolo->tipo), t))
         {
-            erro(n->linha, "atribuicao com tipo incompativel", n->texto);
+            erro(n->linha,
+                 "atribuicao com tipo incompativel",
+                 n->texto);
         }
         break;
     }
 
     case AST_RETORNO:
-        if (n->filho[0])
+    {
+        if (!n->filho[0])
         {
-            TipoSem t = tipo_expr(n->filho[0]);
-            if (!compativel(retorno_atual, t))
-                erro(n->linha, "retorno com tipo incompativel com a funcao", NULL);
+            if (retorno_atual != T_VOID)
+                erro(
+                    n->linha,
+                    "funcao nao void deve retornar um valor",
+                    NULL);
+
+            break;
         }
+
+        TipoSem t = tipo_expr(n->filho[0]);
+
+        if (retorno_atual == T_VOID)
+        {
+            erro(
+                n->linha,
+                "funcao void nao deve retornar um valor",
+                NULL);
+        }
+        else if (!compativel(retorno_atual, t))
+        {
+            erro(
+                n->linha,
+                "retorno com tipo incompativel com a funcao",
+                NULL);
+        }
+
         break;
+    }
 
     case AST_IF:
     {
         TipoSem c = tipo_expr(n->filho[0]);
         if (c != T_ERRO && !numerico(c))
-            erro(n->linha, "condicao do if deve ser numerica", NULL);
+            erro(n->linha,
+                 "condicao do if deve ser numerica",
+                 NULL);
         visita(n->filho[1]);
         visita(n->filho[2]);
         break;
@@ -306,7 +353,9 @@ static void visita(const AstNo *n)
     {
         TipoSem c = tipo_expr(n->filho[0]);
         if (c != T_ERRO && !numerico(c))
-            erro(n->linha, "condicao do while deve ser numerica", NULL);
+            erro(n->linha,
+                 "condicao do while deve ser numerica",
+                 NULL);
         visita(n->filho[1]);
         break;
     }
@@ -316,22 +365,26 @@ static void visita(const AstNo *n)
         visita(n->filho[0]);
         TipoSem c = tipo_expr(n->filho[1]);
         if (c != T_ERRO && !numerico(c))
-            erro(n->linha, "condicao do for deve ser numerica", NULL);
+            erro(n->linha,
+                 "condicao do for deve ser numerica",
+                 NULL);
         visita(n->filho[3]);
         visita(n->filho[2]);
         break;
     }
 
-    case AST_CHAMADA: /* chamada usada como comando, ex.: printf("oi"); */
+    case AST_CHAMADA: /* Chamada usada como comando, ex.: printf("oi"); */
+    {
         tipo_expr(n);
         break;
+    }
 
     default:
         break;
     }
 }
 
-/* Erros que a tabela de simbolos registrou durante o cadastro (S3-04) */
+/* Erros que a tabela de símbolos registrou durante o cadastro (S3-04) */
 static void reporta_problemas_da_tabela(void)
 {
     for (const Problema *p = ts_problemas(); p; p = p->proximo)
@@ -347,6 +400,9 @@ static void reporta_problemas_da_tabela(void)
             break;
         case PROB_FUNCAO_REDEFINIDA:
             msg = "funcao definida duas vezes";
+            break;
+        case PROB_ASSINATURA_INCOMPATIVEL:
+            msg = "assinatura de funcao incompativel";
             break;
         default:
             msg = "problema de declaracao";

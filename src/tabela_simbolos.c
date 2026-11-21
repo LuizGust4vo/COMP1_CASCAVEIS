@@ -231,38 +231,105 @@ Simbolo *ts_insere(const char *nome, AstTipoDado tipo, SimCategoria categoria, i
     return novo_simbolo(nome, tipo, categoria, linha);
 }
 
-Simbolo *ts_insere_funcao(const char *nome, AstTipoDado retorno, int num_parametros,
-                          int definicao, int linha)
+static int mesmos_tipos_parametros(const Simbolo *funcao, const AstNo *parametros)
+{
+    if (!funcao->tipos_parametros)
+        return 1;
+
+    int i = 0;
+
+    for (const AstNo *p = parametros;
+         p && i < funcao->num_parametros;
+         p = p->proximo, i++)
+    {
+        if (funcao->tipos_parametros[i] != p->tipo_dado)
+            return 0;
+    }
+
+    return 1;
+}
+
+int ts_assinatura_compativel(const Simbolo *funcao, AstTipoDado retorno, int num_parametros, const AstNo *parametros)
+{
+    if (!funcao)
+        return 1;
+    if (funcao->tipo != retorno)
+        return 0;
+    if (funcao->num_parametros != num_parametros)
+        return 0;
+    if (!mesmos_tipos_parametros(funcao, parametros))
+        return 0;
+
+    return 1;
+}
+
+int ts_valida_assinatura_funcao(const char *nome, AstTipoDado retorno, int num_parametros, const AstNo *parametros, int linha)
+{
+    Simbolo *existente = ts_busca_global(nome);
+
+    if (!existente)
+        return 1;
+    if (existente->categoria == SIM_FUNCAO_NATIVA)
+        return 1;
+    if (!ts_assinatura_compativel(existente, retorno, num_parametros, parametros))
+    {
+        registra_problema(PROB_ASSINATURA_INCOMPATIVEL, nome, linha, existente);
+        return 0;
+    }
+
+    return 1;
+}
+
+Simbolo *ts_insere_funcao(const char *nome, AstTipoDado retorno, int num_parametros, int definicao, int linha)
 {
     if (topo < 0)
     {
         ts_inicia();
     }
     Simbolo *existente = ts_busca_global(nome);
+
     if (!existente)
     {
         int atual = pilha[topo];
         pilha[topo] = 0;
+
         Simbolo *s = novo_simbolo(nome, retorno, SIM_FUNCAO, linha);
+
         pilha[topo] = atual;
+
         s->definida = definicao;
         s->num_parametros = num_parametros;
+
         return s;
     }
+
     if (existente->categoria == SIM_FUNCAO_NATIVA)
     {
-        registra_problema(PROB_REDECLARACAO, nome, linha, existente);
+        registra_problema(
+            PROB_REDECLARACAO,
+            nome,
+            linha,
+            existente);
+
         return NULL;
     }
+
     if (definicao && existente->definida)
     {
-        registra_problema(PROB_FUNCAO_REDEFINIDA, nome, linha, existente);
+        registra_problema(
+            PROB_FUNCAO_REDEFINIDA,
+            nome,
+            linha,
+            existente);
+
         return NULL;
     }
+
     if (definicao)
     {
         existente->definida = 1;
     }
+
     return existente;
 }
 
@@ -334,6 +401,8 @@ static const char *nome_problema(ProblemaTipo tipo)
         return "oculta declaracao externa";
     case PROB_FUNCAO_REDEFINIDA:
         return "funcao definida duas vezes";
+    case PROB_ASSINATURA_INCOMPATIVEL:
+        return "assinatura de funcao incompativel";
     }
     return "?";
 }
