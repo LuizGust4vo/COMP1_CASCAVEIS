@@ -50,6 +50,22 @@ static TipoSem de_ast(AstTipoDado t)
     }
 }
 
+/* Inverso do de_ast; string e erro nao existem na AST e viram void */
+static AstTipoDado para_ast(TipoSem t)
+{
+    switch (t)
+    {
+    case T_INT:
+        return TIPO_INT;
+    case T_FLOAT:
+        return TIPO_FLOAT;
+    case T_CHAR:
+        return TIPO_CHAR;
+    default:
+        return TIPO_VOID;
+    }
+}
+
 static int numerico(TipoSem t)
 {
     return t == T_INT || t == T_FLOAT || t == T_CHAR;
@@ -88,8 +104,10 @@ static int compativel(TipoSem destino, TipoSem origem)
     }
 }
 
+static TipoSem tipo_expr(AstNo *e);
+
 /* Calcula o tipo de uma expressão (tabela 7.1.1), reportando erros no caminho */
-static TipoSem tipo_expr(const AstNo *e)
+static TipoSem calcula_tipo(AstNo *e)
 {
     if (!e)
         return T_VOID;
@@ -153,7 +171,7 @@ static TipoSem tipo_expr(const AstNo *e)
 
         int i = 0;
 
-        for (const AstNo *a = e->filho[0];
+        for (AstNo *a = e->filho[0];
              a;
              a = a->proximo, i++)
         {
@@ -233,15 +251,24 @@ static TipoSem tipo_expr(const AstNo *e)
     }
 }
 
-static void visita(const AstNo *n);
+/* Calcula o tipo e grava no no, para o gerador de codigo usar (ex.: / ou //) */
+static TipoSem tipo_expr(AstNo *e)
+{
+    TipoSem t = calcula_tipo(e);
+    if (e)
+        e->tipo_dado = para_ast(t);
+    return t;
+}
 
-static void visita_lista(const AstNo *n)
+static void visita(AstNo *n);
+
+static void visita_lista(AstNo *n)
 {
     for (; n; n = n->proximo)
         visita(n);
 }
 
-static void visita(const AstNo *n)
+static void visita(AstNo *n)
 {
     if (!n)
         return;
@@ -412,7 +439,7 @@ static void reporta_problemas_da_tabela(void)
     }
 }
 
-int semantico_analisa(const AstNo *raiz)
+int semantico_analisa(AstNo *raiz)
 {
     erros = 0;
     retorno_atual = T_VOID;
