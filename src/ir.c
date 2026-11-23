@@ -1,0 +1,520 @@
+/*
+ * ir.c - geracao de codigo intermediario a partir da AST (issue 4.3).
+ *
+ * Formato e padroes de geracao: docs/representacao_intermediaria.md.
+ *
+ * Divisao da issue:
+ *   - infraestrutura, expressoes, declaracoes, atribuicoes e impressao: Felipe;
+ *   - blocos, if/else, while, for, funcoes, chamadas e return: Pedro
+ *     (pontos marcados com "TODO(Pedro)").
+ */
+
+#include <stdlib.h>
+#include <string.h>
+#include "ir.h"
+#include "tabela_simbolos.h"
+
+/* ================= memoria ================= */
+
+static void falta_memoria(void) {
+    fprintf(stderr, "Erro interno: memoria insuficiente\n");
+    exit(1);
+}
+
+/* Todas as strings da RI ficam num pool unico, liberado por ir_libera(). */
+typedef struct StrPool {
+    char *texto;
+    struct StrPool *proximo;
+} StrPool;
+
+static StrPool *pool = NULL;
+
+static char *pool_guarda(char *texto) {
+    StrPool *item = malloc(sizeof(StrPool));
+    if (!item) {
+        falta_memoria();
+    }
+    item->texto = texto;
+    item->proximo = pool;
+    pool = item;
+    return texto;
+}
+
+static char *pool_copia(const char *texto) {
+    if (!texto) {
+        return NULL;
+    }
+    char *copia = malloc(strlen(texto) + 1);
+    if (!copia) {
+        falta_memoria();
+    }
+    strcpy(copia, texto);
+    return pool_guarda(copia);
+}
+
+static char *pool_formata_int(char prefixo, int n) {
+    char buf[32];
+    if (prefixo) {
+        snprintf(buf, sizeof buf, "%c%d", prefixo, n);
+    } else {
+        snprintf(buf, sizeof buf, "%d", n);
+    }
+    return pool_copia(buf);
+}
+
+/* ================= estado da geracao ================= */
+
+static int contador_temp = 0;
+static int contador_label = 0;
+
+/* nomes de parametros e variaveis da funcao atual */
+static const char **nomes_funcao = NULL;
+static int num_nomes = 0;
+static int cap_nomes = 0;
+
+/* ================= lista de instrucoes ================= */
+
+static Quadrupla *primeira = NULL;
+static Quadrupla *ultima = NULL;
+static int num_instrucoes = 0;
+
+Quadrupla *ir_emite(IrOp op, const char *arg1, const char *arg2, const char *resultado) {
+    Quadrupla *q = calloc(1, sizeof(Quadrupla));
+    if (!q) {
+        falta_memoria();
+    }
+    q->op = op;
+    q->arg1 = pool_copia(arg1);
+    q->arg2 = pool_copia(arg2);
+    q->resultado = pool_copia(resultado);
+
+    if (ultima) {
+        ultima->proximo = q;
+    } else {
+        primeira = q;
+    }
+    ultima = q;
+    num_instrucoes++;
+    return q;
+}
+
+const Quadrupla *ir_primeira(void) {
+    return primeira;
+}
+
+int ir_num_instrucoes(void) {
+    return num_instrucoes;
+}
+
+void ir_libera(void) {
+    Quadrupla *q = primeira;
+    while (q) {
+        Quadrupla *prox = q->proximo;
+        free(q);
+        q = prox;
+    }
+    primeira = ultima = NULL;
+    num_instrucoes = 0;
+
+    free(nomes_funcao);
+    nomes_funcao = NULL;
+    num_nomes = cap_nomes = 0;
+    contador_temp = contador_label = 0;
+
+    while (pool) {
+        StrPool *prox = pool->proximo;
+        free(pool->texto);
+        free(pool);
+        pool = prox;
+    }
+}
+
+/* ================= temporarios e labels ================= */
+
+static void registra_nome(const char *nome) {
+    if (num_nomes == cap_nomes) {
+        cap_nomes = cap_nomes ? cap_nomes * 2 : 16;
+        const char **novo = realloc(nomes_funcao, cap_nomes * sizeof(*novo));
+        if (!novo) {
+            falta_memoria();
+        }
+        nomes_funcao = novo;
+    }
+    nomes_funcao[num_nomes++] = nome;
+}
+
+static int nome_da_funcao(const char *nome) {
+    for (int i = 0; i < num_nomes; i++) {
+        if (strcmp(nomes_funcao[i], nome) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* percorre a subarvore registrando parametros e declaracoes */
+static void coleta_nomes(const AstNo *no) {
+    for (; no; no = no->proximo) {
+        if ((no->tipo == AST_PARAMETRO || no->tipo == AST_DECLARACAO) && no->texto) {
+            registra_nome(no->texto);
+        }
+        for (int i = 0; i < 4; i++) {
+            coleta_nomes(no->filho[i]);
+        }
+    }
+}
+
+void ir_inicia_funcao(const AstNo *funcao) {
+    contador_temp = 0;
+    contador_label = 0;
+    num_nomes = 0;
+    if (funcao) {
+        coleta_nomes(funcao->filho[0]); /* parametros */
+        coleta_nomes(funcao->filho[1]); /* corpo */
+    }
+}
+
+const char *ir_novo_temp(void) {
+    char *nome;
+    do {
+        nome = pool_formata_int('t', ++contador_temp);
+    } while (nome_da_funcao(nome));
+    return nome;
+}
+
+const char *ir_novo_label(void) {
+    return pool_formata_int('L', ++contador_label);
+}
+
+int ir_eh_temporario(const char *operando) {
+    if (!operando || operando[0] != 't' || operando[1] == '\0') {
+        return 0;
+    }
+    for (const char *p = operando + 1; *p; p++) {
+        if (*p < '0' || *p > '9') {
+            return 0;
+        }
+    }
+    int n = atoi(operando + 1);
+    return n >= 1 && n <= contador_temp && !nome_da_funcao(operando);
+}
+
+/* ================= tipos (para escolher / ou //) ================= */
+
+/*
+ * Tipo de uma expressao ja validada pela analise semantica, seguindo a
+ * tabela 7.1.1 da especificacao. Basta distinguir float de inteiro.
+ */
+static AstTipoDado tipo_expressao(const AstNo *e) {
+    if (!e) {
+        return TIPO_VOID;
+    }
+    switch (e->tipo) {
+        case AST_NUM_FLOAT:
+            return TIPO_FLOAT;
+        case AST_NUM_INT:
+            return TIPO_INT;
+        case AST_CHAR_LIT:
+            return TIPO_CHAR;
+        case AST_ID:
+        case AST_CHAMADA:
+            return e->simbolo ? e->simbolo->tipo : TIPO_INT;
+        case AST_UNARIO:
+            if (e->op == OP_NAO) {
+                return TIPO_INT;
+            }
+            return tipo_expressao(e->filho[0]) == TIPO_FLOAT ? TIPO_FLOAT : TIPO_INT;
+        case AST_BINARIO:
+            switch (e->op) {
+                case OP_SOMA:
+                case OP_SUB:
+                case OP_MUL:
+                case OP_DIV:
+                    return (tipo_expressao(e->filho[0]) == TIPO_FLOAT ||
+                            tipo_expressao(e->filho[1]) == TIPO_FLOAT)
+                               ? TIPO_FLOAT
+                               : TIPO_INT;
+                default:
+                    return TIPO_INT;
+            }
+        default:
+            return TIPO_INT;
+    }
+}
+
+/* ================= operandos constantes ================= */
+
+/* Menor representacao decimal que preserva o valor, sempre com ponto. */
+static const char *formata_float(double valor) {
+    char buf[64];
+    for (int precisao = 1; precisao <= 17; precisao++) {
+        snprintf(buf, sizeof buf, "%.*g", precisao, valor);
+        if (strtod(buf, NULL) == valor) {
+            break;
+        }
+    }
+    if (!strpbrk(buf, ".eEn")) { /* "n" cobre inf/nan */
+        strncat(buf, ".0", sizeof buf - strlen(buf) - 1);
+    }
+    return pool_copia(buf);
+}
+
+static const char *entre(char delimitador, const char *texto) {
+    size_t n = strlen(texto);
+    char *s = malloc(n + 3);
+    if (!s) {
+        falta_memoria();
+    }
+    s[0] = delimitador;
+    memcpy(s + 1, texto, n);
+    s[n + 1] = delimitador;
+    s[n + 2] = '\0';
+    return pool_guarda(s);
+}
+
+/* ================= expressoes ================= */
+
+static IrOp op_binario(const AstNo *e) {
+    switch (e->op) {
+        case OP_SOMA:          return IR_SOMA;
+        case OP_SUB:           return IR_SUB;
+        case OP_MUL:           return IR_MUL;
+        case OP_DIV:
+            return (tipo_expressao(e->filho[0]) == TIPO_FLOAT ||
+                    tipo_expressao(e->filho[1]) == TIPO_FLOAT)
+                       ? IR_DIV
+                       : IR_DIV_INT;
+        case OP_MENOR:         return IR_MENOR;
+        case OP_MAIOR:         return IR_MAIOR;
+        case OP_MENOR_IGUAL:   return IR_MENOR_IGUAL;
+        case OP_MAIOR_IGUAL:   return IR_MAIOR_IGUAL;
+        case OP_IGUAL:         return IR_IGUAL;
+        case OP_DIFERENTE:     return IR_DIFERENTE;
+        default:               return IR_SOMA; /* nao ocorre: && e || tratados a parte */
+    }
+}
+
+/*
+ * a && b  /  a || b com curto-circuito (secao 6 da RI):
+ *
+ *   <a>
+ *   r = a                 ; omitido quando a ja e um temporario
+ *   ifFalse r goto L      ; (if r goto L para ||)
+ *   <b>
+ *   r = b
+ *   L:
+ *
+ * O label e criado ao visitar o operador, antes de gerar os operandos.
+ */
+static const char *gera_logico(const AstNo *e) {
+    const char *fim = ir_novo_label();
+
+    const char *a = ir_gera_expressao(e->filho[0]);
+    const char *r = a;
+    if (!ir_eh_temporario(a)) {
+        r = ir_novo_temp();
+        ir_emite(IR_ATRIB, a, NULL, r);
+    }
+    ir_emite(e->op == OP_E ? IR_IF_FALSE : IR_IF, r, NULL, fim);
+
+    const char *b = ir_gera_expressao(e->filho[1]);
+    ir_emite(IR_ATRIB, b, NULL, r);
+    ir_emite(IR_LABEL, NULL, NULL, fim);
+    return r;
+}
+
+const char *ir_gera_expressao(const AstNo *e) {
+    if (!e) {
+        return NULL;
+    }
+    switch (e->tipo) {
+        case AST_ID:
+            return pool_copia(e->texto);
+
+        case AST_NUM_INT:
+            return pool_formata_int(0, e->valor_int);
+
+        case AST_NUM_FLOAT:
+            return formata_float(e->valor_float);
+
+        case AST_CHAR_LIT:
+            return entre('\'', e->texto);
+
+        case AST_STRING_LIT:
+            return entre('"', e->texto);
+
+        case AST_CHAMADA:
+            return ir_gera_chamada(e, 1);
+
+        case AST_UNARIO: {
+            const char *a = ir_gera_expressao(e->filho[0]);
+            const char *t = ir_novo_temp();
+            ir_emite(e->op == OP_NAO ? IR_NAO : IR_NEGATIVO, a, NULL, t);
+            return t;
+        }
+
+        case AST_BINARIO: {
+            if (e->op == OP_E || e->op == OP_OU) {
+                return gera_logico(e);
+            }
+            const char *a = ir_gera_expressao(e->filho[0]);
+            const char *b = ir_gera_expressao(e->filho[1]);
+            const char *t = ir_novo_temp();
+            ir_emite(op_binario(e), a, b, t);
+            return t;
+        }
+
+        default:
+            fprintf(stderr, "Erro interno: no %d nao e uma expressao\n", e->tipo);
+            return NULL;
+    }
+}
+
+/* ================= comandos ================= */
+
+/* int x;  ->  decl int x      int x = e;  ->  <e>; x = e */
+static void gera_declaracao(const AstNo *d) {
+    if (d->filho[0]) {
+        const char *v = ir_gera_expressao(d->filho[0]);
+        ir_emite(IR_ATRIB, v, NULL, d->texto);
+    } else {
+        ir_emite(IR_DECL, ast_nome_tipo_dado(d->tipo_dado), NULL, d->texto);
+    }
+}
+
+/* x = e  ->  <e>; x = e   (copia direta quando e ja e um operando) */
+static void gera_atribuicao(const AstNo *a) {
+    const char *v = ir_gera_expressao(a->filho[0]);
+    ir_emite(IR_ATRIB, v, NULL, a->texto);
+}
+
+void ir_gera_comando(const AstNo *c) {
+    if (!c) {
+        return;
+    }
+    switch (c->tipo) {
+        case AST_DECLARACAO:
+            gera_declaracao(c);
+            break;
+
+        case AST_ATRIBUICAO:
+            gera_atribuicao(c);
+            break;
+
+        /* TODO(Pedro): AST_BLOCO (percorrer a lista filho[0] / proximo) */
+        /* TODO(Pedro): AST_IF, AST_WHILE e AST_FOR (padroes da secao 6) */
+        /* TODO(Pedro): AST_RETORNO */
+        /* TODO(Pedro): AST_CHAMADA como comando -> ir_gera_chamada(c, 0) */
+
+        default:
+            fprintf(stderr, "Aviso: geracao de codigo para o no %d ainda nao implementada\n", c->tipo);
+            break;
+    }
+}
+
+/* TODO(Pedro): avaliar argumentos, emitir param e call (secao 4, "Chamadas"). */
+const char *ir_gera_chamada(const AstNo *chamada, int usa_resultado) {
+    (void)usa_resultado;
+    fprintf(stderr, "Aviso: geracao de chamadas ainda nao implementada ('%s')\n", chamada->texto);
+    return pool_copia("?");
+}
+
+/* TODO(Pedro): percorrer as funcoes (func, fparam, corpo, endfunc). */
+void ir_gera_programa(const AstNo *raiz) {
+    (void)raiz;
+}
+
+/* ================= impressao ================= */
+
+static const char *simbolo_ir(IrOp op) {
+    switch (op) {
+        case IR_SOMA:         return "+";
+        case IR_SUB:          return "-";
+        case IR_MUL:          return "*";
+        case IR_DIV:          return "/";
+        case IR_DIV_INT:      return "//";
+        case IR_MENOR:        return "<";
+        case IR_MAIOR:        return ">";
+        case IR_MENOR_IGUAL:  return "<=";
+        case IR_MAIOR_IGUAL:  return ">=";
+        case IR_IGUAL:        return "==";
+        case IR_DIFERENTE:    return "!=";
+        case IR_NEGATIVO:     return "-";
+        case IR_NAO:          return "!";
+        default:              return "?";
+    }
+}
+
+static const char *ou_vazio(const char *s) {
+    return s ? s : "";
+}
+
+void ir_imprime(FILE *saida) {
+    for (const Quadrupla *q = primeira; q; q = q->proximo) {
+        switch (q->op) {
+            case IR_SOMA: case IR_SUB: case IR_MUL: case IR_DIV: case IR_DIV_INT:
+            case IR_MENOR: case IR_MAIOR: case IR_MENOR_IGUAL: case IR_MAIOR_IGUAL:
+            case IR_IGUAL: case IR_DIFERENTE:
+                fprintf(saida, "%s = %s %s %s\n", q->resultado, q->arg1, simbolo_ir(q->op), q->arg2);
+                break;
+            case IR_NEGATIVO:
+            case IR_NAO:
+                fprintf(saida, "%s = %s%s\n", q->resultado, simbolo_ir(q->op), q->arg1);
+                break;
+            case IR_ATRIB:
+                fprintf(saida, "%s = %s\n", q->resultado, q->arg1);
+                break;
+            case IR_DECL:
+                fprintf(saida, "decl %s %s\n", q->arg1, q->resultado);
+                break;
+            case IR_LABEL:
+                fprintf(saida, "%s:\n", q->resultado);
+                break;
+            case IR_GOTO:
+                fprintf(saida, "goto %s\n", q->resultado);
+                break;
+            case IR_IF:
+                fprintf(saida, "if %s goto %s\n", q->arg1, q->resultado);
+                break;
+            case IR_IF_FALSE:
+                fprintf(saida, "ifFalse %s goto %s\n", q->arg1, q->resultado);
+                break;
+            case IR_FUNC: {
+                /* func f(T p1, T p2) -> T : os IR_FPARAM seguintes formam a lista */
+                const Quadrupla *func = q;
+                fprintf(saida, "func %s(", func->resultado);
+                const char *sep = "";
+                while (q->proximo && q->proximo->op == IR_FPARAM) {
+                    q = q->proximo;
+                    fprintf(saida, "%s%s %s", sep, q->arg1, q->resultado);
+                    sep = ", ";
+                }
+                fprintf(saida, ") -> %s\n", ou_vazio(func->arg1));
+                break;
+            }
+            case IR_FPARAM: /* so aparece logo apos IR_FUNC */
+                fprintf(saida, "fparam %s %s\n", q->arg1, q->resultado);
+                break;
+            case IR_FIM_FUNC:
+                fprintf(saida, "endfunc\n");
+                break;
+            case IR_PARAM:
+                fprintf(saida, "param %s\n", q->arg1);
+                break;
+            case IR_CALL:
+                if (q->resultado) {
+                    fprintf(saida, "%s = call %s, %s\n", q->resultado, q->arg1, q->arg2);
+                } else {
+                    fprintf(saida, "call %s, %s\n", q->arg1, q->arg2);
+                }
+                break;
+            case IR_RETURN:
+                if (q->arg1) {
+                    fprintf(saida, "return %s\n", q->arg1);
+                } else {
+                    fprintf(saida, "return\n");
+                }
+                break;
+        }
+    }
+}
