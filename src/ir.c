@@ -388,6 +388,56 @@ static void gera_atribuicao(const AstNo *a) {
     ir_emite(IR_ATRIB, v, NULL, a->texto);
 }
 
+/* if sem else: ifFalse c goto L1; <then>; L1:
+   com else:     ifFalse c goto L1; <then>; goto L2; L1: <else>; L2: */
+static void gera_if(const AstNo *c) {
+    const char *senao = ir_novo_label();
+    const char *fim = NULL;
+    if (c->filho[2]) {
+        fim = ir_novo_label();
+    }
+
+    const char *cond = ir_gera_expressao(c->filho[0]);
+    ir_emite(IR_IF_FALSE, cond, NULL, senao);
+    ir_gera_comando(c->filho[1]);
+    if (c->filho[2]) {
+        ir_emite(IR_GOTO, NULL, NULL, fim);
+        ir_emite(IR_LABEL, NULL, NULL, senao);
+        ir_gera_comando(c->filho[2]);
+        ir_emite(IR_LABEL, NULL, NULL, fim);
+    } else {
+        ir_emite(IR_LABEL, NULL, NULL, senao);
+    }
+}
+
+/* L1: <cond>; ifFalse c goto L2; <corpo>; goto L1; L2: */
+static void gera_while(const AstNo *c) {
+    const char *inicio = ir_novo_label();
+    const char *fim = ir_novo_label();
+
+    ir_emite(IR_LABEL, NULL, NULL, inicio);
+    const char *cond = ir_gera_expressao(c->filho[0]);
+    ir_emite(IR_IF_FALSE, cond, NULL, fim);
+    ir_gera_comando(c->filho[1]);
+    ir_emite(IR_GOTO, NULL, NULL, inicio);
+    ir_emite(IR_LABEL, NULL, NULL, fim);
+}
+
+/* igual ao while, com o init antes de L1 e o passo depois do corpo */
+static void gera_for(const AstNo *c) {
+    const char *inicio = ir_novo_label();
+    const char *fim = ir_novo_label();
+
+    ir_gera_comando(c->filho[0]);
+    ir_emite(IR_LABEL, NULL, NULL, inicio);
+    const char *cond = ir_gera_expressao(c->filho[1]);
+    ir_emite(IR_IF_FALSE, cond, NULL, fim);
+    ir_gera_comando(c->filho[3]);
+    ir_gera_comando(c->filho[2]);
+    ir_emite(IR_GOTO, NULL, NULL, inicio);
+    ir_emite(IR_LABEL, NULL, NULL, fim);
+}
+
 void ir_gera_comando(const AstNo *c) {
     if (!c) {
         return;
@@ -401,8 +451,24 @@ void ir_gera_comando(const AstNo *c) {
             gera_atribuicao(c);
             break;
 
-        /* TODO(Pedro): AST_BLOCO (percorrer a lista filho[0] / proximo) */
-        /* TODO(Pedro): AST_IF, AST_WHILE e AST_FOR (padroes da secao 6) */
+        case AST_BLOCO:
+            for (const AstNo *cmd = c->filho[0]; cmd; cmd = cmd->proximo) {
+                ir_gera_comando(cmd);
+            }
+            break;
+
+        case AST_IF:
+            gera_if(c);
+            break;
+
+        case AST_WHILE:
+            gera_while(c);
+            break;
+
+        case AST_FOR:
+            gera_for(c);
+            break;
+
         /* TODO(Pedro): AST_RETORNO */
         /* TODO(Pedro): AST_CHAMADA como comando -> ir_gera_chamada(c, 0) */
 

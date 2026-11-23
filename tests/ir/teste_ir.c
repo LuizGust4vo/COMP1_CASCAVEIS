@@ -177,10 +177,89 @@ static void testa_declaracoes_e_atribuicoes(void) {
             "x = t4\n");
 }
 
+static void testa_if_else(void) {
+    confere("if / else",
+            "void f(int a, int b) { int m; if (a > b) { m = a; } else { m = b; } }",
+            "decl int m\n"
+            "t1 = a > b\n"
+            "ifFalse t1 goto L1\n"
+            "m = a\n"
+            "goto L2\n"
+            "L1:\n"
+            "m = b\n"
+            "L2:\n");
+
+    confere("if sem else",
+            "void f(int x) { int y; if (x == 0) { y = 1; } }",
+            "decl int y\n"
+            "t1 = x == 0\n"
+            "ifFalse t1 goto L1\n"
+            "y = 1\n"
+            "L1:\n");
+
+    confere("if com && (label do if antes do label do &&)",
+            "void f(int x) { int y; if (x > 0 && x < 10) { y = 1; } }",
+            "decl int y\n"
+            "t1 = x > 0\n"
+            "ifFalse t1 goto L2\n"
+            "t2 = x < 10\n"
+            "t1 = t2\n"
+            "L2:\n"
+            "ifFalse t1 goto L1\n"
+            "y = 1\n"
+            "L1:\n");
+
+    confere("else if",
+            "void f(int x) { int s; if (x < 0) { s = 1; } else { if (x == 0) { s = 2; } else { s = 3; } } }",
+            "decl int s\n"
+            "t1 = x < 0\n"
+            "ifFalse t1 goto L1\n"
+            "s = 1\n"
+            "goto L2\n"
+            "L1:\n"
+            "t2 = x == 0\n"
+            "ifFalse t2 goto L3\n"
+            "s = 2\n"
+            "goto L4\n"
+            "L3:\n"
+            "s = 3\n"
+            "L4:\n"
+            "L2:\n");
+}
+
+static void testa_repeticoes(void) {
+    confere("while",
+            "void f(int i, int n, int s) { while (i < n) { s = s + i; i = i + 1; } }",
+            "L1:\n"
+            "t1 = i < n\n"
+            "ifFalse t1 goto L2\n"
+            "t2 = s + i\n"
+            "s = t2\n"
+            "t3 = i + 1\n"
+            "i = t3\n"
+            "goto L1\n"
+            "L2:\n");
+
+    confere("for",
+            "void f(int n, int s) { for (int i = 0; i < n; i = i + 1) { s = s + i; } }",
+            "i = 0\n"
+            "L1:\n"
+            "t1 = i < n\n"
+            "ifFalse t1 goto L2\n"
+            "t2 = s + i\n"
+            "s = t2\n"
+            "t3 = i + 1\n"
+            "i = t3\n"
+            "goto L1\n"
+            "L2:\n");
+}
+
 int main(void) {
     testa_expressoes();
     testa_logicos();
     testa_declaracoes_e_atribuicoes();
+    testa_if_else();
+    testa_repeticoes();
 
     if (falhas) {
         printf("Testes do gerador de RI: %d falha(s) em %d caso(s)\n", falhas, casos);
