@@ -90,7 +90,7 @@ test-simbolos: build $(ts_test_src)
 	@$(ts_exec)
 
 test-ir: build $(ir_test_src)
-	$(cc) -Wall -o $(ir_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(ir_src) $(ir_test_src)
+	$(cc) -Wall -o $(ir_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(ir_test_src)
 	@echo "--- iniciando testes do gerador de codigo intermediario ---"
 	@$(ir_exec)
 

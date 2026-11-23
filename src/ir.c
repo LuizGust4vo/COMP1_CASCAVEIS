@@ -198,49 +198,6 @@ int ir_eh_temporario(const char *operando) {
     return n >= 1 && n <= contador_temp && !nome_da_funcao(operando);
 }
 
-/* ================= tipos (para escolher / ou //) ================= */
-
-/*
- * Tipo de uma expressao ja validada pela analise semantica, seguindo a
- * tabela 7.1.1 da especificacao. Basta distinguir float de inteiro.
- */
-static AstTipoDado tipo_expressao(const AstNo *e) {
-    if (!e) {
-        return TIPO_VOID;
-    }
-    switch (e->tipo) {
-        case AST_NUM_FLOAT:
-            return TIPO_FLOAT;
-        case AST_NUM_INT:
-            return TIPO_INT;
-        case AST_CHAR_LIT:
-            return TIPO_CHAR;
-        case AST_ID:
-        case AST_CHAMADA:
-            return e->simbolo ? e->simbolo->tipo : TIPO_INT;
-        case AST_UNARIO:
-            if (e->op == OP_NAO) {
-                return TIPO_INT;
-            }
-            return tipo_expressao(e->filho[0]) == TIPO_FLOAT ? TIPO_FLOAT : TIPO_INT;
-        case AST_BINARIO:
-            switch (e->op) {
-                case OP_SOMA:
-                case OP_SUB:
-                case OP_MUL:
-                case OP_DIV:
-                    return (tipo_expressao(e->filho[0]) == TIPO_FLOAT ||
-                            tipo_expressao(e->filho[1]) == TIPO_FLOAT)
-                               ? TIPO_FLOAT
-                               : TIPO_INT;
-                default:
-                    return TIPO_INT;
-            }
-        default:
-            return TIPO_INT;
-    }
-}
-
 /* ================= operandos constantes ================= */
 
 /* Menor representacao decimal que preserva o valor, sempre com ponto. */
@@ -279,8 +236,9 @@ static IrOp op_binario(const AstNo *e) {
         case OP_SUB:           return IR_SUB;
         case OP_MUL:           return IR_MUL;
         case OP_DIV:
-            return (tipo_expressao(e->filho[0]) == TIPO_FLOAT ||
-                    tipo_expressao(e->filho[1]) == TIPO_FLOAT)
+            /* tipos gravados pela analise semantica */
+            return (e->filho[0]->tipo_dado == TIPO_FLOAT ||
+                    e->filho[1]->tipo_dado == TIPO_FLOAT)
                        ? IR_DIV
                        : IR_DIV_INT;
         case OP_MENOR:         return IR_MENOR;

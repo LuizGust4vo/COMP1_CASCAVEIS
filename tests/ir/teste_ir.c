@@ -13,6 +13,7 @@
 #include "../../src/ast.h"
 #include "../../src/tabela_simbolos.h"
 #include "../../src/ir.h"
+#include "../../src/semantico.h"
 #include "../../src/parser.tab.h"
 
 extern int erros_lexicos;
@@ -63,6 +64,14 @@ static void confere_ri(const char *nome, const char *codigo, const char *esperad
     if (rc != 0 || erros_lexicos || !raiz_ast) {
         fprintf(stderr, "FALHA [%s]: programa nao foi aceito pelo parser\n", nome);
         falhas++;
+        return;
+    }
+    if (semantico_analisa(raiz_ast) != 0) {
+        fprintf(stderr, "FALHA [%s]: programa rejeitado pela analise semantica\n", nome);
+        falhas++;
+        ast_libera(raiz_ast);
+        raiz_ast = NULL;
+        ts_libera();
         return;
     }
 
@@ -121,6 +130,12 @@ static void testa_expressoes(void) {
             "h = t1\n"
             "t2 = a // 2\n"
             "k = t2\n");
+
+    confere("divisao entre dois char",
+            "void f(char a, char b) { int x; x = a / b; }",
+            "decl int x\n"
+            "t1 = a // b\n"
+            "x = t1\n");
 
     confere("unario",
             "void f(int a) { int y; y = -a * 2; }",
