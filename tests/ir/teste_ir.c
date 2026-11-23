@@ -1,9 +1,10 @@
 /*
  * teste_ir.c - testes do gerador de codigo intermediario (src/ir.c).
  *
- * Cada caso analisa um programa com o parser real, gera a RI dos comandos
- * do corpo da primeira funcao e compara o texto obtido com o esperado
- * (exemplos da secao 7 de docs/representacao_intermediaria.md).
+ * Cada caso analisa um programa com o parser real, gera a RI (so dos
+ * comandos do corpo da primeira funcao, ou do programa inteiro) e compara
+ * o texto obtido com o esperado (exemplos da secao 7 de
+ * docs/representacao_intermediaria.md).
  */
 
 #include <stdio.h>
@@ -46,8 +47,12 @@ static char *texto_da_ri(void) {
     return buf;
 }
 
-/* Gera a RI dos comandos do corpo da primeira funcao de "codigo". */
-static void confere(const char *nome, const char *codigo, const char *esperado) {
+/*
+ * Gera a RI de "codigo": do programa inteiro, se programa_inteiro,
+ * ou so dos comandos do corpo da primeira funcao.
+ */
+static void confere_ri(const char *nome, const char *codigo, const char *esperado,
+                       int programa_inteiro) {
     casos++;
     erros_lexicos = 0;
     construcoes_sem_ast = 0;
@@ -61,10 +66,14 @@ static void confere(const char *nome, const char *codigo, const char *esperado) 
         return;
     }
 
-    const AstNo *funcao = raiz_ast->filho[0];
-    ir_inicia_funcao(funcao);
-    for (const AstNo *c = funcao->filho[1]->filho[0]; c; c = c->proximo) {
-        ir_gera_comando(c);
+    if (programa_inteiro) {
+        ir_gera_programa(raiz_ast);
+    } else {
+        const AstNo *funcao = raiz_ast->filho[0];
+        ir_inicia_funcao(funcao);
+        for (const AstNo *c = funcao->filho[1]->filho[0]; c; c = c->proximo) {
+            ir_gera_comando(c);
+        }
     }
 
     char *obtido = texto_da_ri();
@@ -80,6 +89,14 @@ static void confere(const char *nome, const char *codigo, const char *esperado) 
     ast_libera(raiz_ast);
     raiz_ast = NULL;
     ts_libera();
+}
+
+static void confere(const char *nome, const char *codigo, const char *esperado) {
+    confere_ri(nome, codigo, esperado, 0);
+}
+
+static void confere_programa(const char *nome, const char *codigo, const char *esperado) {
+    confere_ri(nome, codigo, esperado, 1);
 }
 
 static void testa_expressoes(void) {
@@ -254,12 +271,97 @@ static void testa_repeticoes(void) {
             "L2:\n");
 }
 
+static void testa_funcoes(void) {
+    confere_programa("funcao com return de valor",
+            "int soma(int a, int b) { int r = a + b; return r; }",
+            "func soma(int a, int b) -> int\n"
+            "t1 = a + b\n"
+            "r = t1\n"
+            "return r\n"
+            "endfunc\n");
+
+    confere_programa("return sem valor",
+            "void zera(int x) { x = 0; return; }",
+            "func zera(int x) -> void\n"
+            "x = 0\n"
+            "return\n"
+            "endfunc\n");
+
+    confere_programa("chamadas com e sem resultado",
+            "int soma(int a, int b);\n"
+            "void zera(int x);\n"
+            "int main() { int a = 2; int b = 3; int y = soma(a + 1, b * 2); zera(a); return 0; }",
+            "func main() -> int\n"
+            "a = 2\n"
+            "b = 3\n"
+            "t1 = a + 1\n"
+            "t2 = b * 2\n"
+            "param t1\n"
+            "param t2\n"
+            "t3 = call soma, 2\n"
+            "y = t3\n"
+            "param a\n"
+            "call zera, 1\n"
+            "return 0\n"
+            "endfunc\n");
+
+    confere_programa("recursao",
+            "int fat(int n) { if (n <= 1) { return 1; } return n * fat(n - 1); }",
+            "func fat(int n) -> int\n"
+            "t1 = n <= 1\n"
+            "ifFalse t1 goto L1\n"
+            "return 1\n"
+            "L1:\n"
+            "t2 = n - 1\n"
+            "param t2\n"
+            "t3 = call fat, 1\n"
+            "t4 = n * t3\n"
+            "return t4\n"
+            "endfunc\n");
+
+    confere_programa("prototipo, decl e printf",
+            "int fat(int n);\n"
+            "void saudacao() { int contador; contador = 3; printf(\"ola\"); }",
+            "func saudacao() -> void\n"
+            "decl int contador\n"
+            "contador = 3\n"
+            "param \"ola\"\n"
+            "call printf, 1\n"
+            "endfunc\n");
+
+    confere_programa("temporarios e labels reiniciam em cada funcao",
+            "int dobro(int x) { if (x > 0) { return x * 2; } return 0; }\n"
+            "int main() { int y = dobro(3); while (y > 0) { y = y - 1; } return y; }",
+            "func dobro(int x) -> int\n"
+            "t1 = x > 0\n"
+            "ifFalse t1 goto L1\n"
+            "t2 = x * 2\n"
+            "return t2\n"
+            "L1:\n"
+            "return 0\n"
+            "endfunc\n"
+            "func main() -> int\n"
+            "param 3\n"
+            "t1 = call dobro, 1\n"
+            "y = t1\n"
+            "L1:\n"
+            "t2 = y > 0\n"
+            "ifFalse t2 goto L2\n"
+            "t3 = y - 1\n"
+            "y = t3\n"
+            "goto L1\n"
+            "L2:\n"
+            "return y\n"
+            "endfunc\n");
+}
+
 int main(void) {
     testa_expressoes();
     testa_logicos();
     testa_declaracoes_e_atribuicoes();
     testa_if_else();
     testa_repeticoes();
+    testa_funcoes();
 
     if (falhas) {
         printf("Testes do gerador de RI: %d falha(s) em %d caso(s)\n", falhas, casos);

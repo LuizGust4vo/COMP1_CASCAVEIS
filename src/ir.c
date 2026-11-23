@@ -5,8 +5,7 @@
  *
  * Divisao da issue:
  *   - infraestrutura, expressoes, declaracoes, atribuicoes e impressao: Felipe;
- *   - blocos, if/else, while, for, funcoes, chamadas e return: Pedro
- *     (pontos marcados com "TODO(Pedro)").
+ *   - blocos, if/else, while, for, funcoes, chamadas e return: Pedro.
  */
 
 #include <stdlib.h>
@@ -469,25 +468,71 @@ void ir_gera_comando(const AstNo *c) {
             gera_for(c);
             break;
 
-        /* TODO(Pedro): AST_RETORNO */
-        /* TODO(Pedro): AST_CHAMADA como comando -> ir_gera_chamada(c, 0) */
+        case AST_RETORNO: {
+            const char *v = ir_gera_expressao(c->filho[0]); /* NULL se for so "return;" */
+            ir_emite(IR_RETURN, v, NULL, NULL);
+            break;
+        }
+
+        case AST_CHAMADA:
+            ir_gera_chamada(c, 0);
+            break;
 
         default:
-            fprintf(stderr, "Aviso: geracao de codigo para o no %d ainda nao implementada\n", c->tipo);
+            fprintf(stderr, "Erro interno: no %d nao e um comando\n", c->tipo);
             break;
     }
 }
 
-/* TODO(Pedro): avaliar argumentos, emitir param e call (secao 4, "Chamadas"). */
+/*
+ * Avalia todos os argumentos antes de emitir os param, para que nenhuma
+ * outra chamada fique entre os param e o call (secao 4 da RI).
+ */
 const char *ir_gera_chamada(const AstNo *chamada, int usa_resultado) {
-    (void)usa_resultado;
-    fprintf(stderr, "Aviso: geracao de chamadas ainda nao implementada ('%s')\n", chamada->texto);
-    return pool_copia("?");
+    int n = 0;
+    for (const AstNo *a = chamada->filho[0]; a; a = a->proximo) {
+        n++;
+    }
+
+    const char **args = NULL;
+    if (n > 0) {
+        args = malloc(n * sizeof(*args));
+        if (!args) {
+            falta_memoria();
+        }
+    }
+    int i = 0;
+    for (const AstNo *a = chamada->filho[0]; a; a = a->proximo) {
+        args[i++] = ir_gera_expressao(a);
+    }
+
+    for (i = 0; i < n; i++) {
+        ir_emite(IR_PARAM, args[i], NULL, NULL);
+    }
+    free(args);
+
+    const char *t = NULL;
+    if (usa_resultado) {
+        t = ir_novo_temp();
+    }
+    ir_emite(IR_CALL, chamada->texto, pool_formata_int(0, n), t);
+    return t;
 }
 
-/* TODO(Pedro): percorrer as funcoes (func, fparam, corpo, endfunc). */
+/* func f(...) -> T; fparam...; <corpo>; endfunc  (prototipos nao geram nada) */
 void ir_gera_programa(const AstNo *raiz) {
-    (void)raiz;
+    for (const AstNo *f = raiz->filho[0]; f; f = f->proximo) {
+        if (!f->filho[1]) {
+            continue;
+        }
+        ir_inicia_funcao(f);
+        ir_emite(IR_FUNC, ast_nome_tipo_dado(f->tipo_dado), NULL, f->texto);
+        for (const AstNo *p = f->filho[0]; p; p = p->proximo) {
+            ir_emite(IR_FPARAM, ast_nome_tipo_dado(p->tipo_dado), NULL, p->texto);
+        }
+        ir_gera_comando(f->filho[1]);
+        ir_emite(IR_FIM_FUNC, NULL, NULL, NULL);
+    }
 }
 
 /* ================= impressao ================= */
