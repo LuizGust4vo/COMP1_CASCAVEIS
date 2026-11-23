@@ -70,6 +70,7 @@ static int conta_lista(const AstNo *lista) {
 %type <no> bloco bloco_sem_escopo comandos comando declaracao atribuicao
 %type <no> condicional repeticao retorno chamada_funcao
 %type <no> argumentos_opcionais argumentos expressao
+%type <no> inicializacao_for atualizacao_for
 
 %left OR
 %left AND
@@ -116,8 +117,10 @@ tipo_retorno
 declaracao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN SEMI
         {
+            ts_valida_assinatura_funcao($2.texto, $1, conta_lista($4), $4, $2.linha);
             $$ = ast_funcao($1, $2.texto, $4, NULL, $2.linha);
             $$->simbolo = ts_insere_funcao($2.texto, $1, conta_lista($4), 0, $2.linha);
+            ts_define_tipos_parametros($$->simbolo, $4);
             free($2.texto);
         }
     ;
@@ -125,7 +128,9 @@ declaracao_funcao
 definicao_funcao
     : tipo_retorno ID LPAREN parametros_opcionais RPAREN
         {
+            ts_valida_assinatura_funcao( $2.texto, $1, conta_lista($4), $4, $2.linha);
             Simbolo *f = ts_insere_funcao($2.texto, $1, conta_lista($4), 1, $2.linha);
+            ts_define_tipos_parametros(f, $4);
             ts_abre_escopo();
             for (AstNo *p = $4; p; p = p->proximo) {
                 p->simbolo = ts_insere(p->texto, p->tipo_dado, SIM_PARAMETRO, p->linha);
@@ -232,40 +237,40 @@ condicional
 repeticao
     : WHILE LPAREN expressao RPAREN bloco
         {
-            construcoes_sem_ast++;
-            ast_libera($3);
-            ast_libera($5);
-            $$ = NULL;
+            $$ = ast_while($3, $5, $1);
         }
-    | FOR LPAREN { ts_abre_escopo(); } inicializacao_for SEMI expressao SEMI atualizacao_for RPAREN bloco_sem_escopo
+    | FOR LPAREN { ts_abre_escopo(); } 
+      inicializacao_for SEMI 
+      expressao SEMI 
+      atualizacao_for RPAREN 
+      bloco_sem_escopo
         {
+            $$ = ast_for($4, $6, $8, $10, $1);
             ts_fecha_escopo();
-            construcoes_sem_ast++;
-            ast_libera($6);
-            ast_libera($10);
-            $$ = NULL;
         }
     ;
 
 inicializacao_for
     : tipo ID ASSIGN expressao
         {
-            ts_insere($2.texto, $1, SIM_VARIAVEL, $2.linha);
+            $$ = ast_declaracao($1, $2.texto, $4, $2.linha);
+            $$ -> simbolo = ts_insere($2.texto, $1, SIM_VARIAVEL, $2.linha);
             free($2.texto);
-            ast_libera($4);
         }
     | ID ASSIGN expressao
         {
+            $$ = ast_atribuicao($1.texto, $3, $1.linha);
+            $$ -> simbolo = ts_busca_visivel($1.texto);
             free($1.texto);
-            ast_libera($3);
         }
     ;
 
 atualizacao_for
     : ID ASSIGN expressao
         {
+            $$ = ast_atribuicao($1.texto, $3, $1.linha);
+            $$ -> simbolo = ts_busca_visivel($1.texto);
             free($1.texto);
-            ast_libera($3);
         }
     ;
 
