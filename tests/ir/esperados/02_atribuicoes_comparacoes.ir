@@ -1,0 +1,33 @@
+func main() -> int
+x = 5
+y = 10
+r1 = 0
+r2 = 0
+t1 = x + 1
+x = t1
+t2 = x < y
+ifFalse t2 goto L1
+t3 = y != 0
+t2 = t3
+L1:
+r1 = t2
+t4 = x >= y
+if t4 goto L2
+t5 = x == 6
+t4 = t5
+L2:
+r2 = t4
+t6 = r1
+ifFalse t6 goto L5
+t7 = !r2
+t6 = t7
+L5:
+ifFalse t6 goto L3
+x = 1
+goto L4
+L3:
+x = 2
+L4:
+return x
+endfunc
+Analise concluida: programa aceito.

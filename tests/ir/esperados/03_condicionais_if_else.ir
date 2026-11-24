@@ -1,0 +1,23 @@
+func classificar(int n) -> int
+res = 0
+t1 = n > 0
+ifFalse t1 goto L1
+t2 = n > 10
+ifFalse t2 goto L3
+res = 2
+goto L4
+L3:
+res = 1
+L4:
+goto L2
+L1:
+t3 = -1
+res = t3
+L2:
+t4 = n == 0
+ifFalse t4 goto L5
+res = 0
+L5:
+return res
+endfunc
+Analise concluida: programa aceito.

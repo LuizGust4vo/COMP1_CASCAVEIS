@@ -1,0 +1,32 @@
+func dobro(int v) -> int
+t1 = v * 2
+r = t1
+return r
+endfunc
+func soma(int a, int b) -> int
+t1 = a > b
+ifFalse t1 goto L1
+t2 = a + b
+return t2
+L1:
+t3 = b + a
+return t3
+endfunc
+func log_noop(int x) -> void
+t1 = x + 1
+local = t1
+endfunc
+func main() -> int
+param 2
+t1 = call dobro, 1
+param 3
+t2 = call dobro, 1
+param t1
+param t2
+t3 = call soma, 2
+res = t3
+param res
+call log_noop, 1
+return res
+endfunc
+Analise concluida: programa aceito.

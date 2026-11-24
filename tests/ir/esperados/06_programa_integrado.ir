@@ -1,0 +1,33 @@
+func fatorial(int n) -> int
+acc = 1
+i = 1
+L1:
+t1 = i <= n
+ifFalse t1 goto L2
+t2 = acc * i
+acc = t2
+t3 = i + 1
+i = t3
+goto L1
+L2:
+return acc
+endfunc
+func main() -> int
+base = 5
+fat = 0
+t1 = base > 0
+ifFalse t1 goto L3
+t2 = base < 10
+t1 = t2
+L3:
+ifFalse t1 goto L1
+param base
+t3 = call fatorial, 1
+fat = t3
+goto L2
+L1:
+fat = 1
+L2:
+return fat
+endfunc
+Analise concluida: programa aceito.
