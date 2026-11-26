@@ -3,16 +3,17 @@
 #include "ast.h"
 #include "tabela_simbolos.h"
 #include "semantico.h"
+#include "ir.h"
 #include "parser.tab.h"
 
 extern FILE *yyin;
 extern int erros_lexicos;
 extern AstNo *raiz_ast;
-extern int construcoes_sem_ast;
 
 int main(int argc, char **argv) {
     int mostrar_ast = 0;
     int mostrar_simbolos = 0;
+    int mostrar_ir = 0;
     int somente_sintatico = 0;
     const char *arquivo = NULL;
 
@@ -21,6 +22,8 @@ int main(int argc, char **argv) {
             mostrar_ast = 1;
         } else if (strcmp(argv[i], "--simbolos") == 0) {
             mostrar_simbolos = 1;
+        } else if (strcmp(argv[i], "--ir") == 0) {
+            mostrar_ir = 1;
         } else if (strcmp(argv[i], "--sintatico") == 0) {
             somente_sintatico = 1;
         } else {
@@ -54,10 +57,13 @@ int main(int argc, char **argv) {
         if (mostrar_simbolos) {
             ts_imprime(stdout);
         }
-        if (construcoes_sem_ast > 0) {
-            printf("Nota: %d construcao(oes) de repeticao (while/for) reconhecida(s) sintaticamente, mas ainda sem representacao na AST inicial nem cobertura semantica.\n",
-                   construcoes_sem_ast);
+        if (mostrar_ir && raiz_ast && !somente_sintatico) {
+            /* so gera RI para programas aceitos pela analise semantica */
+            ir_gera_programa(raiz_ast);
+            ir_imprime(stdout);
+            ir_libera();
         }
+
         printf("Analise concluida: programa aceito.\n");
         ast_libera(raiz_ast);
         raiz_ast = NULL;

@@ -1522,7 +1522,7 @@ O erro é apontado na linha 3 porque o Parser só percebe a falta do `;` ao ler 
 ## 9. Histórico de Versões
 
 | Versão | Data | Autor(es) | Descrição |
-| ------ | ---- | --------- | -------- |
+| ------ | ---- | --------- | --------- |
 | 1.0 | 23/08/2026 | Gabriel Goldenberg | Criação do documento |
 | 1.1 | 28/08/2026 | Pedro Araujo | Adicionou escopo da linguagem |
 | 1.2 | 29/08/2026 | Ana Caroline | Desenvolvimento dos exemplos de tradução C → Python |

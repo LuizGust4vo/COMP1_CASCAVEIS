@@ -4,6 +4,6 @@
 #include "ast.h"
 
 /* Retorna o número de erros semânticos encontrados (0 = ok). */
-int semantico_analisa(const AstNo *raiz);
+int semantico_analisa(AstNo *raiz);
 
 #endif

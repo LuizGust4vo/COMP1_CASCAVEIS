@@ -10,8 +10,11 @@ ts_src = src/tabela_simbolos.c
 ts_header = src/tabela_simbolos.h
 sem_src = src/semantico.c
 sem_header = src/semantico.h
+ir_src = src/ir.c
+ir_header = src/ir.h
 ast_test_src = tests/ast/teste_ast.c
 ts_test_src = tests/simbolos/teste_simbolos.c
+ir_test_src = tests/ir/teste_ir.c
 lex_out = src/lex.yy.c
 parser_out = src/parser.tab.c
 parser_header = src/parser.tab.h
@@ -25,7 +28,9 @@ ifeq ($(OS),Windows_NT)
 	ast_exec = .\\$(ast_target)
 	ts_target = simbolos_test.exe
 	ts_exec = .\\$(ts_target)
-	rm = powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target), $(ts_target), ast_saida.tmp; exit 0"
+	ir_target = ir_test.exe
+	ir_exec = .\\$(ir_target)
+	rm = powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue $(lex_out), $(parser_out), $(parser_header), src/parser.output, $(target), $(ast_target), $(ts_target), $(ir_target), ast_saida.tmp; exit 0"
 	run_tests_validos = powershell -Command 'Get-ChildItem $(test_dir_validos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando valido:" $$_.Name -ForegroundColor Green; Get-Content $$_.FullName | $(exec) --sintatico }'
 	run_tests_invalidos = powershell -Command 'Get-ChildItem $(test_dir_invalidos)/*.c -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "testando invalido:" $$_.Name -ForegroundColor Red; Get-Content $$_.FullName | $(exec) --sintatico }'
 else
@@ -35,7 +40,9 @@ else
 	ast_exec = ./$(ast_target)
 	ts_target = simbolos_test
 	ts_exec = ./$(ts_target)
-	rm = rm -f $(lex_out) $(parser_out) $(parser_header) src/parser.output $(target) $(ast_target) $(ts_target) ast_saida.tmp
+	ir_target = ir_test
+	ir_exec = ./$(ir_target)
+	rm = rm -f $(lex_out) $(parser_out) $(parser_header) src/parser.output $(target) $(ast_target) $(ts_target) $(ir_target) ast_saida.tmp
 	run_tests_validos = for file in $(test_dir_validos)/*.c; do \
 		if [ -f "$$file" ]; then \
 			echo "\033[1;32mtestando valido: $$file\033[0m"; \
@@ -52,15 +59,15 @@ endif
 
 all: build test
 
-build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header)
+build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header) $(ir_src) $(ir_header)
 	$(bison_cmd) -d -v -o $(parser_out) $(parser_src)
 	$(flex_cmd) -o $(lex_out) $(lex_src)
-	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(main_src)
+	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(main_src)
 
 run: build
 	@$(exec)
 
-test: test-validos test-invalidos test-ast test-simbolos test-semanticos test-consolidado
+test: test-validos test-invalidos test-ast test-simbolos test-semanticos test-ir test-consolidado
 
 test-validos: build
 	@echo "--- iniciando testes validos ---"
@@ -81,6 +88,11 @@ test-simbolos: build $(ts_test_src)
 	$(cc) -Wall -o $(ts_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(ts_test_src)
 	@echo "--- iniciando testes da tabela de simbolos ---"
 	@$(ts_exec)
+
+test-ir: build $(ir_test_src)
+	$(cc) -Wall -o $(ir_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(ir_test_src)
+	@echo "--- iniciando testes do gerador de codigo intermediario ---"
+	@$(ir_exec)
 
 # testes semanticos: validos devem sair com 0, invalidos com 1
 test-semanticos: build

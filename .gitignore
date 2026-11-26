@@ -10,3 +10,5 @@ ast_test.exe
 ast_saida.tmp
 simbolos_test
 simbolos_test.exe
+ir_test
+ir_test.exe
