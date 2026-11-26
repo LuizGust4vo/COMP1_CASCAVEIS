@@ -1,17 +1,20 @@
 # Representação Intermediária (RI) do Compilador C → Python
 
-
-## 1. Decisão
+## 1. Objetivo
 
 A RI adotada é o **código de três endereços (CTE)** em forma **linear**. Em memória ele é representado por **quádruplas** `(op, arg1, arg2, result)` e, em texto, é exibido com uma instrução por linha. Cada instrução tem no máximo um operador, o que torna a geração a partir da AST direta (percurso em pós-ordem) e facilita as otimizações da Issue 5.2 e a geração do Python final (Issue 5.1).
 
-A RI cobre todo o subconjunto aceito pelo `parser.y`: tipos `int`, `float`, `char` e `void`; operadores aritméticos, relacionais e lógicos (incluindo `-` e `!` unários); declarações e atribuições; `if/else`; `while`; `for`; funções (com protótipos), chamadas e `return`; e a função nativa `printf`, que só recebe literais de string como argumento direto (seção 7.1.3 da especificação). Há um pré-requisito na seção 9: hoje o parser reconhece `while` e `for`, mas não os coloca na AST.
+A RI cobre todo o subconjunto aceito pelo `parser.y`: tipos `int`, `float`, `char` e `void`; operadores aritméticos, relacionais e lógicos (incluindo `-` e `!` unários); declarações e atribuições; `if/else`; `while`; `for`; funções (com protótipos), chamadas e `return`; e a função nativa `printf`, que só recebe literais de string como argumento direto (seção 7.1.3 da especificação). 
+
+---
 
 ## 2. Elementos da RI
 
 ### 2.1 Operandos
 
 Um operando é um **identificador** (variável ou parâmetro do código-fonte), um **temporário** ou uma **constante**. Constantes: inteiro (`42`), decimal (`3.14`), char (`'a'`) e string (`"texto"`). Strings só aparecem como argumento direto de chamada (`param "texto"`).
+
+---
 
 ### 2.2 Temporários
 
@@ -20,15 +23,21 @@ Um operando é um **identificador** (variável ou parâmetro do código-fonte), 
 - Todo resultado intermediário vai para um temporário novo; não há reaproveitamento.
 - A numeração segue a ordem de criação, reinicia no início de cada função e pula qualquer `t<n>` que já seja nome de variável ou parâmetro da função (identificadores como `t1` são válidos na linguagem).
 
+---
+
 ### 2.3 Labels
 
 - Formato `L<n>`: `L1`, `L2`, …, escritos em linha própria (`L1:`).
 - Os labels de um construto são numerados quando o construto é iniciado (pré-ordem), antes de gerar suas partes internas. Isso deixa a saída determinística para os testes da Issue 4.4.
 - O contador reinicia a cada função, e um salto nunca sai da função em que está.
 
+---
+
 ### 2.4 Nomes de variáveis
 
-Variáveis e parâmetros mantêm o nome do código-fonte, sem renomeação. A análise semântica já rejeita nomes repetidos em escopos aninhados (sombreamento), nomes iguais aos de funções e nomes reservados do Python (regras 4, 5, 8 e 13 da seção 7.2.3 da especificação), então cada nome designa uma única variável por função, que é o que o Python exige. O nome vem de `AstNo.texto` e o tipo, de `AstNo.simbolo`.
+Variáveis e parâmetros mantêm o nome do código-fonte, sem renomeação. A análise semântica já rejeita nomes repetidos em escopos aninhados (sombreamento), nomes iguais aos de funções e nomes reservados do Python (regras 4, 5, 8 e 13 da seção 7.2.3 da especificação). Os conflitos de identificadores são controlados de acordo com seus escopos, permitindo a reutilização de um nome após o encerramento do escopo anterior. O nome vem de `AstNo.texto` e o tipo, de `AstNo.simbolo`.
+
+---
 
 ## 3. Conjunto de instruções
 
@@ -48,6 +57,8 @@ Variáveis e parâmetros mantêm o nome do código-fonte, sem renomeação. A an
 | `x = call f, n` | Chama `f` (inclusive `printf`) com os `n` últimos `param`; o resultado vai para `x`. |
 | `call f, n` | Chamada sem uso do resultado (funções `void` e `printf`). |
 | `return y` e `return` | Retorno com valor e sem valor. |
+
+---
 
 ## 4. Convenções
 
@@ -70,7 +81,9 @@ Variáveis e parâmetros mantêm o nome do código-fonte, sem renomeação. A an
 
 **Funções.** Os parâmetros são declarados no cabeçalho `func`. Funções não `void` retornam com `return <operando>`.
 
-**`for`.** Não tem instrução própria: é gerado na forma de `while` (seção 6), coerente com a decisão do grupo de traduzir todo `for` para `while`.
+**`for`.** O `for` é representado na AST por um nó `AST_FOR`, contendo inicialização, condição, atualização e corpo. Na geração da RI, essa estrutura é convertida para o padrão de controle equivalente a um `while` (seção 6).
+
+---
 
 ## 5. Estrutura em memória (para a Issue 4.3)
 
@@ -97,7 +110,7 @@ typedef struct Quadrupla {
 O prefixo `IR_` evita colisão com `OP_SOMA`, `OP_SUB`, `OP_MUL` e `OP_DIV`, já definidos em `ast.h`. A correspondência com `AstOperador` é direta (`OP_SOMA` → `IR_SOMA`, `OP_MENOR` → `IR_MENOR`, `OP_NEGATIVO` → `IR_NEGATIVO`, `OP_NAO` → `IR_NAO`); `OP_DIV` vira `IR_DIV` ou `IR_DIV_INT` conforme os tipos, e `OP_E` e `OP_OU` não têm instrução própria porque viram saltos. Os campos são strings (nomes, temporários ou literais) e os que não se aplicam ficam `NULL`.
 
 | Forma textual | op | arg1 | arg2 | resultado |
-| --- | --- | --- | --- | --- |
+| ------------- | -- | ---- | ---- | --------- |
 | `x = y <op> z` | `IR_SOMA` … `IR_DIFERENTE` | y | z | x |
 | `x = -y` / `x = !y` | `IR_NEGATIVO` / `IR_NAO` | y | — | x |
 | `x = y` | `IR_ATRIB` | y | — | x |
@@ -113,6 +126,8 @@ O prefixo `IR_` evita colisão com `OP_SOMA`, `OP_SUB`, `OP_MUL` e `OP_DIV`, já
 | `return y` | `IR_RETURN` | y (ou vazio) | — | — |
 
 O cabeçalho `func` com parâmetros é guardado como um `IR_FUNC` seguido de um `IR_FPARAM` por parâmetro. A impressão em texto (formato da seção 3) deve ficar em uma única função de dump, usada pelos testes da Issue 4.4.
+
+---
 
 ## 6. Padrões de geração
 
@@ -197,6 +212,8 @@ param an
 x = call f, n
 ```
 
+---
+
 ## 7. Exemplos (C → RI)
 
 ### 7.1 Expressões
@@ -260,6 +277,8 @@ t2 = t1 * 2
 y = t2
 ```
 
+---
+
 ### 7.2 if / else
 
 ```c
@@ -322,6 +341,8 @@ L4:
 L2:
 ```
 
+---
+
 ### 7.3 while e for
 
 ```c
@@ -356,6 +377,8 @@ i = t3
 goto L1
 L2:
 ```
+
+---
 
 ### 7.4 Funções, chamadas e return
 
@@ -429,6 +452,8 @@ return t4
 endfunc
 ```
 
+---
+
 ### 7.5 Declaração sem inicializador, printf e protótipo
 
 ```c
@@ -450,12 +475,14 @@ call printf, 1
 endfunc
 ```
 
+---
+
 ## 8. Mapeamento para o Python (diretriz para a Issue 5.1)
 
 - `decl <tipo> x` vira `x = None` (seção 7.2.4 da especificação); declarações com inicializador viram só a atribuição.
 - Temporários viram variáveis locais (`t1 = ...`) ou são embutidos na expressão.
 - `!` vira `not`; os demais operadores mantêm o símbolo (`//` já é o do Python).
-- `func` vira `def f(p1, p2):`; `param` + `call` viram `f(a1, a2)`; `call printf, n` vira `print(a1, ...)`; `return` continua `return`.
+- `func` vira `def f(p1, p2):`; `param` + `call` viram `f(a1, a2)`; `call printf, 1` vira `print(a1)`; `return` continua `return`.
 - `ifFalse y goto L` com salto só para frente (até o label `L`, sem `goto` de volta) vira `if y:` sobre o trecho até `L`; `if y goto L` vira `if not y:`. Se o trecho termina em `goto` para um label mais adiante, o que vem depois do label intermediário é o `else`.
 - Padrão do `while` (label, `ifFalse` para o fim e `goto` de volta ao label inicial) vira `while True:` com a avaliação da condição no início e `if not c: break`. Se a condição é uma expressão sem efeito colateral, pode virar `while <expr>:`.
 - `&&` e `||` caem no padrão do `if` acima, o que preserva o curto-circuito sem `goto`; um passe posterior pode juntá-los em `a and b` e `a or b`.
@@ -503,11 +530,32 @@ def soma_ate(n):
     return s
 ```
 
+---
+
 ## 9. Pendências e limitações
 
-1. **A AST ainda não representa `while` e `for` (bloqueia a Issue 4.3).** No `parser.y`, as duas regras de `repeticao` só incrementam `construcoes_sem_ast`, liberam as subárvores e devolvem `NULL`. O `AstNo` tem apenas três filhos (`filho[3]`) e o `for` tem quatro partes. Sugestão, coerente com a regra de traduzir todo `for` para `while`: o parser monta um nó `AST_WHILE` (condição e corpo) e transforma `for (init; cond; passo) corpo` em um bloco `init; while (cond) { corpo; passo }`, sem criar um `AST_FOR`. A variável do `for` continua registrada na tabela de símbolos pelo parser.
-2. **Tipo das divisões.** O `semantico.c` calcula o tipo de cada expressão em uma função interna, mas não o grava em `AstNo.tipo_dado`. O gerador precisa dele para escolher `/` ou `//`: é preciso expor essa função ou gravar o tipo no nó.
-3. **Valor de `&&` e `||`.** O resultado é o do último operando avaliado, como no `and` e `or` do Python, e não necessariamente 0 ou 1. Em condições não há diferença.
-4. **Divisão inteira com negativos.** Em C ela trunca para zero e o `//` do Python arredonda para baixo. Se isso importar, o back-end pode gerar `int(a / b)`.
-5. **`-` sobre literal.** `-1` vira `t1 = -1` (um `IR_NEGATIVO`, sem simplificação); simplificar é trabalho da Issue 5.2.
-6. **Fora do escopo da linguagem:** variáveis globais, arrays, ponteiros, `break`, `continue`, `%` e conversões explícitas entre `int` e `float`.
+1. **Valor de `&&` e `||`.**  
+   A geração intermediária preserva o valor do último operando efetivamente avaliado, seguindo o comportamento de curto-circuito definido para esses operadores. Dessa forma, o resultado de `&&` e `||` não é necessariamente normalizado para `0` ou `1`. Em condições de `if`, `while` e `for`, essa diferença não altera o funcionamento esperado, mas deve ser considerada na geração do código final.
+
+2. **Divisão inteira com valores negativos.**  
+   A representação intermediária utiliza `//` para representar divisão entre operandos inteiros ou `char`. Entretanto, existe uma diferença entre a semântica de C e Python para valores negativos: em C, a divisão inteira trunca o resultado em direção a zero, enquanto o operador `//` do Python realiza arredondamento para baixo. Essa diferença deverá ser tratada na geração de código final para preservar a semântica do código C.
+
+3. **Simplificação de operações unárias sobre literais.**  
+   Expressões como `-1` são representadas atualmente como uma operação unária na RI, podendo gerar uma instrução intermediária e um temporário, em vez de utilizar diretamente a constante negativa. Essa simplificação não é necessária para a correção do programa e poderá ser realizada posteriormente durante a etapa de otimização.
+
+4. **Operações numéricas com `char` no Python.**  
+   Na linguagem fonte, valores do tipo `char` podem participar de operações numéricas. No Python, porém, caracteres são representados como strings de um único caractere e não podem ser usados diretamente em operações aritméticas com números. A geração de código final deverá converter esses valores para sua representação numérica quando necessário, por exemplo utilizando `ord()`.
+
+5. **Construções fora do escopo da linguagem.**  
+   Permanecem fora do subconjunto suportado pelo compilador construções como variáveis globais, arrays, ponteiros, `break`, `continue`, operador `%` e conversões explícitas de tipos. Essas construções não são suportadas pelo reconhecimento sintático, análise semântica ou geração de código intermediário/final.
+
+---
+
+## 10. Histórico de Versões
+
+| Versão | Data | Autor(es) | Descrição |
+| ------ | ---- | --------- | --------- |
+| 1.0 | 20/11/2026 | Ana Caroline  | Criação do documento e Definição inicial da representação intermediária e de suas principais instruções |
+| 1.1 | 25/11/2026 | Luiz Almeida | Atualização da AST, divisões e pendências do documento |
+
+---

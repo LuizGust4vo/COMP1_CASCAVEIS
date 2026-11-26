@@ -335,8 +335,12 @@ Simbolo *ts_insere_funcao(const char *nome, AstTipoDado retorno, int num_paramet
 
 void ts_define_tipos_parametros(Simbolo *funcao, const AstNo *parametros)
 {
-    if (!funcao || funcao->num_parametros <= 0)
+    if (!funcao ||
+        funcao->num_parametros <= 0 ||
+        funcao->tipos_parametros)
+    {
         return;
+    }
 
     funcao->tipos_parametros =
         malloc((size_t)funcao->num_parametros * sizeof(AstTipoDado));

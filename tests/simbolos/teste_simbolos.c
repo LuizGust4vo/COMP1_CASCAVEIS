@@ -8,7 +8,6 @@
 extern int yylineno;
 extern int erros_lexicos;
 extern AstNo *raiz_ast;
-extern int construcoes_sem_ast;
 
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern YY_BUFFER_STATE yy_scan_string(const char *str);
@@ -102,7 +101,6 @@ static void testa_funcoes(void) {
 static int analisa_string(const char *codigo) {
     yylineno = 1;
     erros_lexicos = 0;
-    construcoes_sem_ast = 0;
     raiz_ast = NULL;
     YY_BUFFER_STATE buf = yy_scan_string(codigo);
     int rc = yyparse();
@@ -310,7 +308,6 @@ static void testa_escopo_do_for(void) {
     VERIFICA(ts_problemas()->tipo == PROB_REDECLARACAO && ts_problemas()->linha == 8);
     AstNo *t_igual_i = acha_no(raiz_ast, AST_ATRIBUICAO, "t");
     VERIFICA(t_igual_i && t_igual_i->filho[0]->tipo == AST_ID && t_igual_i->filho[0]->simbolo == NULL);
-    VERIFICA(construcoes_sem_ast == 0);
     encerra_analise();
 }
 

@@ -9,7 +9,6 @@
 extern FILE *yyin;
 extern int erros_lexicos;
 extern AstNo *raiz_ast;
-extern int construcoes_sem_ast;
 
 int main(int argc, char **argv) {
     int mostrar_ast = 0;
@@ -64,10 +63,7 @@ int main(int argc, char **argv) {
             ir_imprime(stdout);
             ir_libera();
         }
-        if (construcoes_sem_ast > 0) {
-            printf("Nota: %d construcao(oes) de repeticao (while/for) reconhecida(s) sintaticamente, mas ainda sem representacao na AST inicial nem cobertura semantica.\n",
-                   construcoes_sem_ast);
-        }
+
         printf("Analise concluida: programa aceito.\n");
         ast_libera(raiz_ast);
         raiz_ast = NULL;
