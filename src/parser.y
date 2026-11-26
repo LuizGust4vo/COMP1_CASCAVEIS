@@ -29,7 +29,6 @@ extern int yylineno;
 void yyerror(const char *s);
 
 AstNo *raiz_ast = NULL;
-int construcoes_sem_ast = 0;
 
 static int conta_lista(const AstNo *lista) {
     int n = 0;

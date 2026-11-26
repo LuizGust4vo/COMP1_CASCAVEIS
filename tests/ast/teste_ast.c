@@ -13,7 +13,6 @@ extern FILE *yyin;
 extern int yylineno;
 extern int erros_lexicos;
 extern AstNo *raiz_ast;
-extern int construcoes_sem_ast;
 
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern YY_BUFFER_STATE yy_scan_string(const char *str);
@@ -241,7 +240,6 @@ static void testa_impressao_opcionais(void) {
 static int analisa_string(const char *codigo) {
     yylineno = 1;
     erros_lexicos = 0;
-    construcoes_sem_ast = 0;
     raiz_ast = NULL;
     YY_BUFFER_STATE buf = yy_scan_string(codigo);
     int rc = yyparse();
@@ -317,7 +315,6 @@ static void testa_parser_arvore_esperada(void) {
 
     yylineno = 1;
     erros_lexicos = 0;
-    construcoes_sem_ast = 0;
     raiz_ast = NULL;
     yyrestart(in);
     int rc = yyparse();
@@ -373,7 +370,6 @@ static void testa_parser_repeticao_com_ast(void) {
     int rc = analisa_string(codigo);
     
     VERIFICA(rc == 0 && erros_lexicos == 0);
-    VERIFICA(construcoes_sem_ast == 0);
     
     ast_libera(raiz_ast);
     raiz_ast = NULL;

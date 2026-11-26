@@ -1,9 +1,9 @@
 /*
- * teste_ir.c - testes do gerador de codigo intermediario (src/ir.c).
+ * teste_ir.c - testes do gerador de código intermediário (src/ir.c).
  *
- * Cada caso analisa um programa com o parser real, gera a RI (so dos
- * comandos do corpo da primeira funcao, ou do programa inteiro) e compara
- * o texto obtido com o esperado (exemplos da secao 7 de
+ * Cada caso analisa um programa com o parser real, gera a RI (só dos
+ * comandos do corpo da primeira função, ou do programa inteiro) e compara
+ * o texto obtido com o esperado (exemplos da seção 7 de
  * docs/representacao_intermediaria.md).
  */
 
@@ -18,7 +18,6 @@
 
 extern int erros_lexicos;
 extern AstNo *raiz_ast;
-extern int construcoes_sem_ast;
 
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern YY_BUFFER_STATE yy_scan_string(const char *str);
@@ -56,7 +55,6 @@ static void confere_ri(const char *nome, const char *codigo, const char *esperad
                        int programa_inteiro) {
     casos++;
     erros_lexicos = 0;
-    construcoes_sem_ast = 0;
     raiz_ast = NULL;
     YY_BUFFER_STATE buf = yy_scan_string(codigo);
     int rc = yyparse();
