@@ -1,0 +1,26 @@
+func div_char(char a, char b) -> int
+t1 = a // b
+return t1
+endfunc
+func main() -> int
+t1 = 3 * 4
+t2 = 2 + t1
+a = t2
+t3 = 10 - 2
+t4 = t3 // 2
+b = t4
+t5 = -a
+t6 = t5 + b
+c = t6
+t7 = 7.5 / 2.5
+f = t7
+ch1 = 'd'
+ch2 = 'b'
+param ch1
+param ch2
+t8 = call div_char, 2
+d = t8
+t9 = c + d
+return t9
+endfunc
+Analise concluida: programa aceito.

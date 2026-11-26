@@ -1,0 +1,34 @@
+func somar(int limite) -> int
+i = 0
+j = 0
+total = 0
+L1:
+t1 = i < limite
+ifFalse t1 goto L2
+t2 = total + i
+total = t2
+t3 = i + 1
+i = t3
+goto L1
+L2:
+j = 0
+L3:
+t4 = j < limite
+ifFalse t4 goto L4
+k = 0
+L5:
+t5 = k < 2
+ifFalse t5 goto L6
+t6 = total + 1
+total = t6
+t7 = k + 1
+k = t7
+goto L5
+L6:
+t8 = j + 1
+j = t8
+goto L3
+L4:
+return total
+endfunc
+Analise concluida: programa aceito.
