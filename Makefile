@@ -116,5 +116,10 @@ test-consolidado: build
 	@echo "--- iniciando executor consolidado ---"
 	@python3 tests/executar_testes.py
 
+# testes end-to-end: C -> Python -> execucao, comparando com tests/e2e/esperados
+test-e2e: build
+	@echo "--- iniciando testes end-to-end ---"
+	@python3 tests/executar_testes.py --e2e
+
 clean:
 	@$(rm)

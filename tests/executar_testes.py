@@ -3,6 +3,7 @@ import difflib
 import os
 import subprocess
 import sys
+import tempfile
 
 RAIZ = Path(__file__).resolve().parent.parent
 NOME_BIN = "lexer_test.exe" if os.name == "nt" else "lexer_test"
@@ -169,10 +170,159 @@ def executar_ir_invalidos(diretorio):
     return passou
 
 
+TIMEOUT_PYTHON = 10
+
+
+def rodar_compilador_python(arquivo_c, arquivo_py):
+    return subprocess.run(
+        [str(EXECUTAVEL), "--python", str(arquivo_py), str(arquivo_c)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida):
+    nome = arquivo_c.relative_to(RAIZ)
+
+    if not arquivo_esperado.exists():
+        print(f"FALHOU (gabarito ausente): {nome} "
+              f"(esperado: {arquivo_esperado.relative_to(RAIZ)})")
+        return False
+
+    arquivo_py = dir_saida / f"{arquivo_c.stem}.py"
+    compilacao = rodar_compilador_python(arquivo_c, arquivo_py)
+
+    if compilacao.returncode != 0 or not arquivo_py.exists():
+        print(f"FALHOU (compilacao C -> Python): {nome} "
+              f"(codigo={compilacao.returncode}, gerou_py={arquivo_py.exists()})")
+        if compilacao.stderr:
+            print("stderr:")
+            print(compilacao.stderr)
+        return False
+
+    try:
+        execucao = subprocess.run(
+            [sys.executable, str(arquivo_py)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT_PYTHON,
+        )
+    except subprocess.TimeoutExpired:
+        print(f"FALHOU (timeout de {TIMEOUT_PYTHON}s ao executar Python): {nome}")
+        return False
+
+    if execucao.returncode != 0:
+        print(f"FALHOU (execucao do Python gerado): {nome} "
+              f"(codigo={execucao.returncode})")
+        if execucao.stderr:
+            print("stderr:")
+            print(execucao.stderr)
+        return False
+
+    obtido = normalizar_saida(execucao.stdout)
+    esperado = normalizar_saida(arquivo_esperado.read_text(encoding="utf-8"))
+
+    if obtido == esperado:
+        print(f"OK (E2E): {nome}")
+        return True
+
+    print(f"FALHOU (saida divergente): {nome}")
+    diff = difflib.unified_diff(
+        esperado.splitlines(),
+        obtido.splitlines(),
+        fromfile=str(arquivo_esperado.relative_to(RAIZ)),
+        tofile="saida_obtida",
+        lineterm="",
+    )
+    for linha in diff:
+        print("  ", linha)
+    return False
+
+
+def executar_suite_e2e():
+    dir_entradas = RAIZ / "tests" / "e2e" / "entradas"
+    dir_esperados = RAIZ / "tests" / "e2e" / "esperados"
+    entradas = sorted(dir_entradas.glob("*.c"))
+
+    if not entradas:
+        print("FALHOU: nenhum teste end-to-end encontrado em tests/e2e/entradas/")
+        return False
+
+    passou = True
+    with tempfile.TemporaryDirectory(prefix="e2e_") as tmp:
+        for arquivo_c in entradas:
+            esperado = dir_esperados / f"{arquivo_c.stem}.out"
+            if not executar_teste_e2e(arquivo_c, esperado, Path(tmp)):
+                passou = False
+
+    for arquivo_out in sorted(dir_esperados.glob("*.out")):
+        if not (dir_entradas / f"{arquivo_out.stem}.c").exists():
+            print(f"FALHOU (gabarito sem entrada): {arquivo_out.relative_to(RAIZ)}")
+            passou = False
+
+    return passou
+
+
+def executar_e2e_invalidos(diretorios):
+    """Entradas invalidas (lexicas, sintaticas ou semanticas) nao podem gerar Python."""
+    passou = True
+
+    with tempfile.TemporaryDirectory(prefix="e2e_inv_") as tmp:
+        for diretorio in diretorios:
+            for arquivo in sorted(diretorio.glob("*.c")):
+                arquivo_py = Path(tmp) / f"{arquivo.stem}.py"
+                resultado = rodar_compilador_python(arquivo, arquivo_py)
+                gerou_py = arquivo_py.exists()
+
+                if resultado.returncode != 0 and not gerou_py:
+                    print(f"OK (Python bloqueado): {arquivo.relative_to(RAIZ)}")
+                else:
+                    print(f"FALHOU (Python deveria ser bloqueado): "
+                          f"{arquivo.relative_to(RAIZ)} "
+                          f"(codigo={resultado.returncode}, gerou_py={gerou_py})")
+                    passou = False
+
+    return passou
+
+
+DIRETORIOS_INVALIDOS_E2E = [
+    RAIZ / "tests" / "invalidos",
+    RAIZ / "tests" / "semanticos" / "invalidos",
+]
+
+
+def executar_somente_e2e():
+    sucesso = True
+
+    print("\n=== TESTES END-TO-END (C -> PYTHON -> EXECUCAO) ===")
+    if not executar_suite_e2e():
+        sucesso = False
+
+    print("\n=== BLOQUEIO DE CODIGO FINAL EM PROGRAMAS INVALIDOS ===")
+    if not executar_e2e_invalidos(DIRETORIOS_INVALIDOS_E2E):
+        sucesso = False
+
+    return sucesso
+
+
 def main():
     if not EXECUTAVEL.exists():
         print("ERRO: lexer_test não encontrado.")
         print("Execute 'make build' antes dos testes.")
+        return 1
+
+    if "--e2e" in sys.argv[1:]:
+        if executar_somente_e2e():
+            print("\nTodos os testes end-to-end passaram.")
+            return 0
+        print("\nOs testes end-to-end apresentaram falhas.")
         return 1
 
     sucesso = True
@@ -213,6 +363,9 @@ def main():
 
     print("\n=== BLOQUEIO DE IR EM PROGRAMAS SEMANTICAMENTE INVÁLIDOS ===")
     if not executar_ir_invalidos(RAIZ / "tests" / "semanticos" / "invalidos"):
+        sucesso = False
+
+    if not executar_somente_e2e():
         sucesso = False
 
     if sucesso:
