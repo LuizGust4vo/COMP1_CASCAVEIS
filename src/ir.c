@@ -12,6 +12,7 @@
 #include <string.h>
 #include "ir.h"
 #include "tabela_simbolos.h"
+#include "otimizador.h"
 
 /* ================= memoria ================= */
 
@@ -128,6 +129,29 @@ void ir_libera(void) {
     }
 }
 
+void ir_remove_apos(Quadrupla *anterior) {
+    Quadrupla *alvo = anterior ? anterior->proximo : NULL;
+    if (!alvo) {
+        return;
+    }
+    anterior->proximo = alvo->proximo;
+    if (ultima == alvo) {
+        ultima = anterior;
+    }
+    num_instrucoes--;
+    free(alvo);
+}
+
+const char *ir_copia_texto(const char *texto) {
+    return pool_copia(texto);
+}
+
+const char *ir_formata_int(long long valor) {
+    char buf[32];
+    snprintf(buf, sizeof buf, "%lld", valor);
+    return pool_copia(buf);
+}
+
 /* ================= temporarios e labels ================= */
 
 static void registra_nome(const char *nome) {
@@ -201,7 +225,7 @@ int ir_eh_temporario(const char *operando) {
 /* ================= operandos constantes ================= */
 
 /* Menor representacao decimal que preserva o valor, sempre com ponto. */
-static const char *formata_float(double valor) {
+const char *ir_formata_float(double valor) {
     char buf[64];
     for (int precisao = 1; precisao <= 17; precisao++) {
         snprintf(buf, sizeof buf, "%.*g", precisao, valor);
@@ -292,7 +316,7 @@ const char *ir_gera_expressao(const AstNo *e) {
             return pool_formata_int(0, e->valor_int);
 
         case AST_NUM_FLOAT:
-            return formata_float(e->valor_float);
+            return ir_formata_float(e->valor_float);
 
         case AST_CHAR_LIT:
             return entre('\'', e->texto);
@@ -484,12 +508,17 @@ void ir_gera_programa(const AstNo *raiz) {
             continue;
         }
         ir_inicia_funcao(f);
-        ir_emite(IR_FUNC, ast_nome_tipo_dado(f->tipo_dado), NULL, f->texto);
+        Quadrupla *inicio = ir_emite(IR_FUNC, ast_nome_tipo_dado(f->tipo_dado), NULL, f->texto);
         for (const AstNo *p = f->filho[0]; p; p = p->proximo) {
             ir_emite(IR_FPARAM, ast_nome_tipo_dado(p->tipo_dado), NULL, p->texto);
         }
         ir_gera_comando(f->filho[1]);
         ir_emite(IR_FIM_FUNC, NULL, NULL, NULL);
+
+        /* com a funcao ainda "atual", ir_eh_temporario distingue tN de variaveis */
+        if (otimizador_ativo()) {
+            otimizador_otimiza_funcao(inicio);
+        }
     }
 }
 

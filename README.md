@@ -60,6 +60,7 @@ código C ──► Léxico (Flex) ──► Sintático (Bison) ──► AST + 
 | Tabela de símbolos | `src/tabela_simbolos.c`, `src/tabela_simbolos.h` | Variáveis, parâmetros e funções com controle de escopos. |
 | Semântico | `src/semantico.c`, `src/semantico.h` | Tipos, declarações, escopos, chamadas e retornos. |
 | Código intermediário | `src/ir.c`, `src/ir.h` | Gera a RI em código de três endereços. |
+| Otimização (opcional) | `src/otimizador.c`, `src/otimizador.h` | Dobra de constantes, simplificações, propagação, eliminação de cópias e de código morto (`--otimizar`). |
 | Código final | `src/codegen.c`, `src/codegen.h` | Traduz a RI para Python. |
 | Orquestração | `src/main.c` | Lê a entrada, executa as etapas e trata as opções de linha de comando. |
 
@@ -112,6 +113,7 @@ Sem arquivo, o programa é lido da entrada padrão (`./lexer_test < arquivo.c`).
 | `--simbolos` | Exibe a tabela de símbolos. |
 | `--ir` | Exibe o código intermediário (três endereços). |
 | `--python <saida.py>` | Gera o código Python final no arquivo indicado. |
+| `--otimizar` | Aplica as otimizações da RI antes de imprimi-la ou gerar o Python, e imprime um resumo em `stderr`. |
 
 As opções podem ser combinadas. O código de saída é `0` quando o programa é aceito e `1` quando é rejeitado.
 
@@ -129,10 +131,11 @@ Saída esperada:
 41
 ```
 
-Para visualizar a representação intermediária do mesmo programa:
+Para visualizar a representação intermediária do mesmo programa, sem e com otimizações:
 
 ```bash
 ./lexer_test --ir tests/e2e/entradas/06_programa_integrado.c
+./lexer_test --otimizar --ir tests/e2e/entradas/06_programa_integrado.c
 ```
 
 ### Casos de erro
@@ -157,6 +160,7 @@ Em todos os casos o programa é rejeitado com a mensagem correspondente, e `--py
 | `make test-ir` | Gerador de código intermediário. |
 | `make test-consolidado` | Executor `tests/executar_testes.py`: códigos de saída, gabaritos de RI (`tests/ir`) e testes end-to-end. |
 | `make test-e2e` | Apenas os testes end-to-end. |
+| `make test-otimizacao` | Otimizações da RI: gabaritos de `tests/otimizacao` e testes end-to-end com `--otimizar`. |
 
 Os testes **end-to-end** compilam cada programa de `tests/e2e/entradas/` para Python, executam o arquivo gerado e comparam a saída com `tests/e2e/esperados/`. Também verificam que nenhum programa de `tests/invalidos/` ou `tests/semanticos/invalidos/` gera código Python.
 
