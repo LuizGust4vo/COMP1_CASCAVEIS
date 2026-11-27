@@ -12,6 +12,8 @@ sem_src = src/semantico.c
 sem_header = src/semantico.h
 ir_src = src/ir.c
 ir_header = src/ir.h
+codegen_src = src/codegen.c
+codegen_header = src/codegen.h
 ast_test_src = tests/ast/teste_ast.c
 ts_test_src = tests/simbolos/teste_simbolos.c
 ir_test_src = tests/ir/teste_ir.c
@@ -59,10 +61,10 @@ endif
 
 all: build test
 
-build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header) $(ir_src) $(ir_header)
+build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header) $(ir_src) $(ir_header) $(codegen_src) $(codegen_header)
 	$(bison_cmd) -d -v -o $(parser_out) $(parser_src)
 	$(flex_cmd) -o $(lex_out) $(lex_src)
-	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(main_src)
+	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(codegen_src) $(main_src)
 
 run: build
 	@$(exec)
