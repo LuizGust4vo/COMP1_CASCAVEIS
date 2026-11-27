@@ -541,7 +541,7 @@ def soma_ate(n):
    A representação intermediária utiliza `//` para representar divisão entre operandos inteiros ou `char`. Entretanto, existe uma diferença entre a semântica de C e Python para valores negativos: em C, a divisão inteira trunca o resultado em direção a zero, enquanto o operador `//` do Python realiza arredondamento para baixo. Essa diferença deverá ser tratada na geração de código final para preservar a semântica do código C.
 
 3. **Simplificação de operações unárias sobre literais.**  
-   Expressões como `-1` são representadas atualmente como uma operação unária na RI, podendo gerar uma instrução intermediária e um temporário, em vez de utilizar diretamente a constante negativa. Essa simplificação não é necessária para a correção do programa e poderá ser realizada posteriormente durante a etapa de otimização.
+   Expressões como `-1` são representadas como uma operação unária na RI, gerando uma instrução intermediária e um temporário, em vez de utilizar diretamente a constante negativa. Com a opção `--otimizar`, a dobra de constantes resolve esse caso (seção 10).
 
 4. **Operações numéricas com `char` no Python.**  
    Na linguagem fonte, valores do tipo `char` podem participar de operações numéricas. No Python, porém, caracteres são representados como strings de um único caractere e não podem ser usados diretamente em operações aritméticas com números. A geração de código final deverá converter esses valores para sua representação numérica quando necessário, por exemplo utilizando `ord()`.
@@ -551,11 +551,62 @@ def soma_ate(n):
 
 ---
 
-## 10. Histórico de Versões
+## 10. Otimizações (Issue 6.4)
+
+As otimizações são opcionais e ativadas pela opção `--otimizar`. Sem ela, a RI é exatamente a descrita nas seções anteriores (e é a que os gabaritos de `tests/ir/` verificam). A implementação está em `src/otimizador.c`.
+
+Cada função é otimizada logo após ser gerada, ainda como função "atual" do gerador. Isso é necessário para distinguir temporários de variáveis do programa com nomes parecidos (por exemplo, uma variável `t1` declarada pelo usuário, seção 2.2). Os passes abaixo são repetidos até que nenhum deles altere mais nada.
+
+| Passe | Antes | Depois |
+|---|---|---|
+| Dobra de constantes | `t1 = 3 * 4` | `t1 = 12` |
+| Simplificação algébrica | `t2 = t1 + 0` | `t2 = t1` |
+| Propagação de constantes | `t1 = 12`<br>`t2 = 2 + t1` | `t2 = 2 + 12` |
+| Eliminação de cópias | `t3 = a + b`<br>`x = t3` | `x = a + b` |
+| Temporários mortos | `t4 = a * 2` (sem uso) | *(removida)* |
+| Código inalcançável | `return i`<br>`i = i + 100`<br>`L3:` | `return i`<br>`L3:` |
+
+Exemplo (`int a = 2 + 3 * 4; int b = (10 - 2) / 2;`):
+
+```
+; sem --otimizar             ; com --otimizar
+t1 = 3 * 4                   a = 14
+t2 = 2 + t1                  b = 4
+a = t2
+t3 = 10 - 2
+t4 = t3 // 2
+b = t4
+```
+
+Com `--otimizar`, o compilador imprime em `stderr` um resumo com a quantidade de cada otimização aplicada e o total de instruções da RI final.
+
+### 10.1 Restrições que preservam a semântica
+
+- **Saltos e labels não são alterados.** O gerador de Python reconstrói `if`, `else` e `while` a partir dos padrões da seção 6. Por isso, condições constantes como `ifFalse 0 goto L1` são mantidas, e o trecho controlado por elas não é removido.
+- **Curto-circuito.** O temporário de `&&` e `||` recebe dois valores (seção 6), então não é propagado nem renomeado, e a cópia `r = b` antes do label é preservada, pois o gerador a usa para normalizar o resultado em `0` ou `1`.
+- **Chamadas** nunca são removidas, porque podem ter efeitos (como `printf`). Quando o resultado não é usado, só o temporário é descartado.
+- **Dobra de constantes** não é feita para divisão por zero nem quando o resultado sai da faixa de `int`. Assim o programa gerado continua se comportando como o não otimizado. A divisão inteira trunca em direção a zero, como em C (seção 9, item 2), e um `char` literal vale o seu código (`'b' - 'a'` vira `1`).
+- **Simplificação algébrica** só é aplicada quando o outro operando é garantidamente numérico (uma constante ou o resultado de uma conta). `c + 0` com `c` do tipo `char` vale o código do caractere, e não o próprio caractere. Os neutros precisam ser os inteiros `0` e `1`, porque `x + 0.0` transforma um `int` em `float`. `x * 0` não é simplificado, pois o resultado seria `0` mesmo para `x` `float` (`0.0`).
+- **Código inalcançável** é removido apenas entre um `return` e o próximo label, `goto` ou fim de função, e só quando esse trecho não tem saltos nem declarações.
+
+### 10.2 Testes
+
+`make test-otimizacao` (também incluído em `make test`) verifica, para cada programa de `tests/otimizacao/entradas/` (um por tipo de otimização):
+
+- se a RI otimizada é igual ao gabarito `tests/otimizacao/esperados/<nome>.ir`;
+- se a RI otimizada tem menos instruções que a original;
+- se o Python gerado **com e sem** `--otimizar` imprime o gabarito `<nome>.out`.
+
+Além disso, todos os programas de `tests/e2e/` são executados com `--otimizar` e devem produzir a mesma saída esperada.
+
+---
+
+## 11. Histórico de Versões
 
 | Versão | Data | Autor(es) | Descrição |
 | ------ | ---- | --------- | --------- |
 | 1.0 | 20/11/2026 | Ana Caroline  | Criação do documento e Definição inicial da representação intermediária e de suas principais instruções |
 | 1.1 | 25/11/2026 | Luiz Almeida | Atualização da AST, divisões e pendências do documento |
+| 1.2 | 27/11/2026 | Felipe Matheus | Otimizações básicas da RI (seção 10) |
 
 ---
