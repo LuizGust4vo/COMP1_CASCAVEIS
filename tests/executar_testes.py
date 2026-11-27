@@ -173,9 +173,9 @@ def executar_ir_invalidos(diretorio):
 TIMEOUT_PYTHON = 10
 
 
-def rodar_compilador_python(arquivo_c, arquivo_py):
+def rodar_compilador_python(arquivo_c, arquivo_py, extras=()):
     return subprocess.run(
-        [str(EXECUTAVEL), "--python", str(arquivo_py), str(arquivo_c)],
+        [str(EXECUTAVEL), *extras, "--python", str(arquivo_py), str(arquivo_c)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -184,7 +184,7 @@ def rodar_compilador_python(arquivo_c, arquivo_py):
     )
 
 
-def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida):
+def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida, extras=(), rotulo="E2E"):
     nome = arquivo_c.relative_to(RAIZ)
 
     if not arquivo_esperado.exists():
@@ -192,8 +192,8 @@ def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida):
               f"(esperado: {arquivo_esperado.relative_to(RAIZ)})")
         return False
 
-    arquivo_py = dir_saida / f"{arquivo_c.stem}.py"
-    compilacao = rodar_compilador_python(arquivo_c, arquivo_py)
+    arquivo_py = dir_saida / f"{arquivo_c.stem}{''.join(extras).replace('-', '_')}.py"
+    compilacao = rodar_compilador_python(arquivo_c, arquivo_py, extras)
 
     if compilacao.returncode != 0 or not arquivo_py.exists():
         print(f"FALHOU (compilacao C -> Python): {nome} "
@@ -230,7 +230,7 @@ def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida):
     esperado = normalizar_saida(arquivo_esperado.read_text(encoding="utf-8"))
 
     if obtido == esperado:
-        print(f"OK (E2E): {nome}")
+        print(f"OK ({rotulo}): {nome}")
         return True
 
     print(f"FALHOU (saida divergente): {nome}")
@@ -246,7 +246,7 @@ def executar_teste_e2e(arquivo_c, arquivo_esperado, dir_saida):
     return False
 
 
-def executar_suite_e2e():
+def executar_suite_e2e(extras=(), rotulo="E2E"):
     dir_entradas = RAIZ / "tests" / "e2e" / "entradas"
     dir_esperados = RAIZ / "tests" / "e2e" / "esperados"
     entradas = sorted(dir_entradas.glob("*.c"))
@@ -259,7 +259,7 @@ def executar_suite_e2e():
     with tempfile.TemporaryDirectory(prefix="e2e_") as tmp:
         for arquivo_c in entradas:
             esperado = dir_esperados / f"{arquivo_c.stem}.out"
-            if not executar_teste_e2e(arquivo_c, esperado, Path(tmp)):
+            if not executar_teste_e2e(arquivo_c, esperado, Path(tmp), extras, rotulo):
                 passou = False
 
     for arquivo_out in sorted(dir_esperados.glob("*.out")):
@@ -290,6 +290,102 @@ def executar_e2e_invalidos(diretorios):
                     passou = False
 
     return passou
+
+
+def gera_ir(arquivo_c, extras=()):
+    return subprocess.run(
+        [str(EXECUTAVEL), *extras, "--ir", str(arquivo_c)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def conta_instrucoes(saida_ir):
+    return sum(
+        1 for linha in normalizar_saida(saida_ir).splitlines()
+        if linha.strip() and not linha.startswith("Analise concluida")
+    )
+
+
+def executar_suite_otimizacao():
+    """
+    Para cada programa de tests/otimizacao/entradas:
+      - a RI otimizada (--otimizar --ir) e igual ao gabarito .ir;
+      - a RI otimizada tem menos instrucoes que a original;
+      - o Python gerado com e sem --otimizar imprime o gabarito .out.
+    """
+    dir_entradas = RAIZ / "tests" / "otimizacao" / "entradas"
+    dir_esperados = RAIZ / "tests" / "otimizacao" / "esperados"
+    entradas = sorted(dir_entradas.glob("*.c"))
+
+    if not entradas:
+        print("FALHOU: nenhum teste de otimizacao em tests/otimizacao/entradas/")
+        return False
+
+    passou = True
+    with tempfile.TemporaryDirectory(prefix="opt_") as tmp:
+        for arquivo_c in entradas:
+            nome = arquivo_c.relative_to(RAIZ)
+            gabarito_ir = dir_esperados / f"{arquivo_c.stem}.ir"
+            gabarito_out = dir_esperados / f"{arquivo_c.stem}.out"
+
+            original = gera_ir(arquivo_c)
+            otimizada = gera_ir(arquivo_c, ("--otimizar",))
+
+            if original.returncode != 0 or otimizada.returncode != 0:
+                print(f"FALHOU (geracao de RI): {nome}")
+                passou = False
+                continue
+
+            if not gabarito_ir.exists():
+                print(f"FALHOU (gabarito ausente): {gabarito_ir.relative_to(RAIZ)}")
+                passou = False
+            else:
+                obtido = normalizar_saida(otimizada.stdout)
+                esperado = normalizar_saida(gabarito_ir.read_text(encoding="utf-8"))
+                if obtido == esperado:
+                    print(f"OK (RI otimizada): {nome}")
+                else:
+                    print(f"FALHOU (RI otimizada divergente): {nome}")
+                    for linha in difflib.unified_diff(
+                        esperado.splitlines(), obtido.splitlines(),
+                        fromfile=str(gabarito_ir.relative_to(RAIZ)),
+                        tofile="saida_obtida", lineterm="",
+                    ):
+                        print("  ", linha)
+                    passou = False
+
+            antes = conta_instrucoes(original.stdout)
+            depois = conta_instrucoes(otimizada.stdout)
+            if depois < antes:
+                print(f"OK (reducao {antes} -> {depois} instrucoes): {nome}")
+            else:
+                print(f"FALHOU (sem reducao: {antes} -> {depois} instrucoes): {nome}")
+                passou = False
+
+            for extras, rotulo in (((), "execucao sem otimizar"),
+                                   (("--otimizar",), "execucao otimizada")):
+                if not executar_teste_e2e(arquivo_c, gabarito_out, Path(tmp), extras, rotulo):
+                    passou = False
+
+    return passou
+
+
+def executar_somente_otimizacao():
+    sucesso = True
+
+    print("\n=== OTIMIZACOES DO CODIGO INTERMEDIARIO ===")
+    if not executar_suite_otimizacao():
+        sucesso = False
+
+    print("\n=== TESTES END-TO-END COM --otimizar ===")
+    if not executar_suite_e2e(("--otimizar",), "E2E otimizado"):
+        sucesso = False
+
+    return sucesso
 
 
 DIRETORIOS_INVALIDOS_E2E = [
@@ -323,6 +419,13 @@ def main():
             print("\nTodos os testes end-to-end passaram.")
             return 0
         print("\nOs testes end-to-end apresentaram falhas.")
+        return 1
+
+    if "--otimizacao" in sys.argv[1:]:
+        if executar_somente_otimizacao():
+            print("\nTodos os testes de otimizacao passaram.")
+            return 0
+        print("\nOs testes de otimizacao apresentaram falhas.")
         return 1
 
     sucesso = True
@@ -366,6 +469,9 @@ def main():
         sucesso = False
 
     if not executar_somente_e2e():
+        sucesso = False
+
+    if not executar_somente_otimizacao():
         sucesso = False
 
     if sucesso:

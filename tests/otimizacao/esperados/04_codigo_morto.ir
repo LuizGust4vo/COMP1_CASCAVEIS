@@ -1,0 +1,42 @@
+func primeiro_par(int n) -> int
+i = 1
+L1:
+t1 = i <= n
+ifFalse t1 goto L2
+t2 = i // 2
+t3 = t2 * 2
+t4 = t3 == i
+ifFalse t4 goto L3
+return i
+L3:
+i = i + 1
+goto L1
+L2:
+return 0
+endfunc
+func sinal(int v) -> int
+t1 = v < 0
+ifFalse t1 goto L1
+return -1
+goto L2
+L1:
+return 1
+L2:
+return 0
+endfunc
+func main() -> int
+param 7
+t1 = call primeiro_par, 1
+param t1
+call printf, 1
+param -5
+t3 = call sinal, 1
+param t3
+call printf, 1
+param 3
+t4 = call sinal, 1
+param t4
+call printf, 1
+return 0
+endfunc
+Analise concluida: programa aceito.

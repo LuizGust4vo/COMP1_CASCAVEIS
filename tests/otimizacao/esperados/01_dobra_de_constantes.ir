@@ -1,0 +1,39 @@
+func main() -> int
+a = 14
+b = -3
+c = -3
+f = 3.0
+g = 1.5
+r = 1
+n = 0
+m = 1
+k = 1
+grande = 2147483647 + 1
+ifFalse 0 goto L1
+z = 1 // 0
+param z
+call printf, 1
+L1:
+param a
+call printf, 1
+param b
+call printf, 1
+param c
+call printf, 1
+param f
+call printf, 1
+param g
+call printf, 1
+param r
+call printf, 1
+param n
+call printf, 1
+param m
+call printf, 1
+param k
+call printf, 1
+param grande
+call printf, 1
+return 0
+endfunc
+Analise concluida: programa aceito.

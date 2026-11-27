@@ -5,6 +5,7 @@
 #include "semantico.h"
 #include "ir.h"
 #include "codegen.h"
+#include "otimizador.h"
 #include "parser.tab.h"
 
 extern FILE *yyin;
@@ -45,6 +46,10 @@ int main(int argc, char **argv) {
                 return 1;
             }
             arquivo_python = argv[++i];
+        }
+        else if (strcmp(argv[i], "--otimizar") == 0)
+        {
+            otimizador_ativa(1);
         }
         else if (strcmp(argv[i], "--sintatico") == 0)
         {
@@ -92,7 +97,22 @@ int main(int argc, char **argv) {
             if ((mostrar_ir || gerar_python) && raiz_ast && !somente_sintatico)
             {
                 /* Gera RI apenas para programas aceitos pela análise semântica */
+                otimizador_reinicia();
                 ir_gera_programa(raiz_ast);
+
+                if (otimizador_ativo())
+                {
+                    /* resumo em stderr para nao misturar com a RI impressa */
+                    OtimizadorEstatisticas e = otimizador_estatisticas();
+                    fprintf(stderr,
+                            "Otimizacao: %d dobra(s) de constante, %d simplificacao(oes), "
+                            "%d propagacao(oes), %d copia(s) eliminada(s), "
+                            "%d temporario(s) morto(s), %d instrucao(oes) inalcancavel(is); "
+                            "%d instrucao(oes) na RI final.\n",
+                            e.dobras_constantes, e.simplificacoes, e.propagacoes,
+                            e.copias_eliminadas, e.temporarios_mortos, e.inalcancaveis,
+                            ir_num_instrucoes());
+                }
 
                 if (mostrar_ir)
                 {

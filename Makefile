@@ -14,6 +14,8 @@ ir_src = src/ir.c
 ir_header = src/ir.h
 codegen_src = src/codegen.c
 codegen_header = src/codegen.h
+opt_src = src/otimizador.c
+opt_header = src/otimizador.h
 ast_test_src = tests/ast/teste_ast.c
 ts_test_src = tests/simbolos/teste_simbolos.c
 ir_test_src = tests/ir/teste_ir.c
@@ -61,10 +63,10 @@ endif
 
 all: build test
 
-build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header) $(ir_src) $(ir_header) $(codegen_src) $(codegen_header)
+build: $(lex_src) $(parser_src) $(main_src) $(ast_src) $(ast_header) $(ts_src) $(ts_header) $(sem_src) $(sem_header) $(ir_src) $(ir_header) $(codegen_src) $(codegen_header) $(opt_src) $(opt_header)
 	$(bison_cmd) -d -v -o $(parser_out) $(parser_src)
 	$(flex_cmd) -o $(lex_out) $(lex_src)
-	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(codegen_src) $(main_src)
+	$(cc) -Wall -o $(target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(opt_src) $(codegen_src) $(main_src)
 
 run: build
 	@$(exec)
@@ -92,7 +94,7 @@ test-simbolos: build $(ts_test_src)
 	@$(ts_exec)
 
 test-ir: build $(ir_test_src)
-	$(cc) -Wall -o $(ir_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(ir_test_src)
+	$(cc) -Wall -o $(ir_target) $(lex_out) $(parser_out) $(ast_src) $(ts_src) $(sem_src) $(ir_src) $(opt_src) $(ir_test_src)
 	@echo "--- iniciando testes do gerador de codigo intermediario ---"
 	@$(ir_exec)
 
@@ -120,6 +122,11 @@ test-consolidado: build
 test-e2e: build
 	@echo "--- iniciando testes end-to-end ---"
 	@python3 tests/executar_testes.py --e2e
+
+# otimizacoes da RI: gabaritos em tests/otimizacao e e2e com --otimizar
+test-otimizacao: build
+	@echo "--- iniciando testes de otimizacao ---"
+	@python3 tests/executar_testes.py --otimizacao
 
 clean:
 	@$(rm)

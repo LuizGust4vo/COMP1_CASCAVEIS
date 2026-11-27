@@ -83,4 +83,16 @@ void ir_imprime(FILE *saida);
 /* Libera todas as instrucoes e strings geradas. */
 void ir_libera(void);
 
+/* ---------- apoio ao otimizador (issue 6.4) ---------- */
+
+/* Remove e libera a instrucao seguinte a "anterior" (que nao pode ser NULL). */
+void ir_remove_apos(Quadrupla *anterior);
+
+/* Copia um texto para o pool da RI (liberado por ir_libera). */
+const char *ir_copia_texto(const char *texto);
+
+/* Formata constantes no mesmo formato usado pelo gerador. */
+const char *ir_formata_int(long long valor);
+const char *ir_formata_float(double valor);
+
 #endif
