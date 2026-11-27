@@ -901,7 +901,7 @@ a & 1;
 a << 2;
 ```
 
-Caso de teste: [`operadores_nao_suportados.c`](../tests/invalidos/operadores_nao_suportados.c)
+Casos de teste: [`operador_atribuicao_composta.c`](../tests/invalidos/operador_atribuicao_composta.c), [`operador_incremento.c`](../tests/invalidos/operador_incremento.c), [`operador_decremento.c`](../tests/invalidos/operador_decremento.c), [`operador_bitwise_and.c`](../tests/invalidos/operador_bitwise_and.c), [`operador_shift_esquerda.c`](../tests/invalidos/operador_shift_esquerda.c)
 
 ---
 
